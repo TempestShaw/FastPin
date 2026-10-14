@@ -66,6 +66,20 @@ private slots:
         QTRY_VERIFY(shortcutsRegistered());
         QSettings settings; QCOMPARE(Hotkeys::load(settings), bindings);
     }
+
+    void invalidApplyKeepsPreviousShortcuts()
+    {
+        Controller panel;
+        panel.findChild<QTabWidget *>()->setCurrentIndex(1);
+        panel.show(); panel.activateWindow();
+        auto *edit = panel.findChild<QLineEdit *>("shortcutEdit"); QVERIFY(edit);
+        edit->setFocus(); QTRY_VERIFY(edit->hasFocus());
+        QTest::keyClick(edit, Qt::Key_S);
+        panel.findChild<QPushButton *>("applyShortcuts")->click();
+        QVERIFY(!edit->hasFocus());
+        QTRY_VERIFY(shortcutsRegistered());
+        QSettings settings; QCOMPARE(Hotkeys::load(settings), bindings);
+    }
 };
 QTEST_MAIN(ControllerTests)
 #include "controller_tests.moc"

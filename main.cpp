@@ -124,7 +124,7 @@ public:
         connect(apply, &QPushButton::clicked, this, [this] {
             Hotkeys::Bindings bindings; for (int i = 0; i < 3; ++i) bindings[i] = edits[i]->binding();
             for (auto *edit : edits) edit->clearFocus();
-            shortcutsRecording = false;
+            refreshShortcutRecording();
             const QString error = hotkeys.apply(bindings);
             if (!error.isEmpty()) { settingsFeedback->setText(error); return; }
             Hotkeys::save(settings, bindings); refreshShortcuts();
