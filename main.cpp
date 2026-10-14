@@ -33,25 +33,25 @@ public:
     {
         setWindowTitle("FastPin");
         setFixedWidth(620);
-        setStyleSheet("QWidget#panel { background: #f5f7fb; } QLabel { color: #24314a; }"
-                      "QLabel#muted { color: #6d7b92; font-size: 12px; }"
-                      "QFrame#card { background: white; border: 1px solid #e1e7f0; border-radius: 12px; }"
-                      "QPushButton { color: #24314a; background: white; border: 1px solid #dae2ef; border-radius: 8px; padding: 9px 14px; }"
-                      "QPushButton:hover { background: #edf3ff; border-color: #b2cbf7; }"
-                      "QPushButton:disabled { color: #98a3b4; background: #f1f4f8; }"
-                      "QPushButton#captureButton, QPushButton#applyShortcuts { color: white; background: #266de8; border: 0; }"
-                      "QPushButton#captureButton:hover, QPushButton#applyShortcuts:hover { background: #195ccd; }"
-                      "QTabWidget::pane { border: 0; } QTabBar::tab { color: #6d7b92; padding: 9px 18px; border-bottom: 2px solid transparent; }"
-                      "QTabBar::tab:selected { color: #266de8; border-bottom-color: #266de8; }"
-                      "QLineEdit#shortcutEdit { background: #f5f7fb; color: #24314a; border: 1px solid #dce4f0; border-radius: 7px; padding: 7px; }"
-                      "QLineEdit#shortcutEdit:focus { border-color: #266de8; } QCheckBox { color: #24314a; spacing: 8px; }");
+        setStyleSheet("QWidget#panel { background: #E9EDEB; } QLabel { color: #151B1C; }"
+                      "QLabel#muted { color: #596660; font-size: 12px; }"
+                      "QFrame#card { background: white; border: 1px solid #D5DDD8; border-radius: 12px; }"
+                      "QPushButton { color: #151B1C; background: white; border: 1px solid #D5DDD8; border-radius: 8px; padding: 9px 14px; }"
+                      "QPushButton:hover { background: #DDF6E9; border-color: #19D98A; }"
+                      "QPushButton:disabled { color: #77817E; background: #E9EDEB; }"
+                      "QPushButton#captureButton, QPushButton#applyShortcuts { color: white; background: #128252; border: 0; }"
+                      "QPushButton#captureButton:hover, QPushButton#applyShortcuts:hover { background: #0C693F; }"
+                      "QTabWidget::pane { border: 0; } QTabBar::tab { color: #596660; padding: 9px 18px; border-bottom: 2px solid transparent; }"
+                      "QTabBar::tab:selected { color: #128252; border-bottom-color: #128252; }"
+                      "QLineEdit#shortcutEdit { background: #E9EDEB; color: #151B1C; border: 1px solid #D5DDD8; border-radius: 7px; padding: 7px; }"
+                      "QLineEdit#shortcutEdit:focus { border-color: #128252; } QCheckBox { color: #151B1C; spacing: 8px; }");
         setObjectName("panel");
         auto *layout = new QVBoxLayout(this);
         layout->setContentsMargins(28, 26, 28, 18); layout->setSpacing(16);
         auto *header = new QHBoxLayout;
         auto *logo = new QLabel(this); logo->setPixmap(QIcon(":/brand/app-icon.png").pixmap(48, 48)); header->addWidget(logo);
         auto *title = new QLabel("<span style='font-size:24px; font-weight:600'>FastPin</span><br>"
-                                "<span style='color:#6d7b92; font-size:12px'>Capture ideas. Keep them in view.</span>", this);
+                                "<span style='color:#596660; font-size:12px'>Capture ideas. Keep them in view.</span>", this);
         header->addWidget(title); header->addStretch();
         auto *gettingStarted = new QPushButton("Getting started", this); header->addWidget(gettingStarted);
         connect(gettingStarted, &QPushButton::clicked, this, [this] { showGettingStarted(); }); layout->addLayout(header);
@@ -63,12 +63,12 @@ public:
             auto *button = new QPushButton(this); button->setMinimumHeight(76); button->setAccessibleName(title);
             button->setObjectName(name + "Button");
             auto *row = new QHBoxLayout(button); row->setContentsMargins(18, 10, 18, 10); row->setSpacing(14);
-            auto *icon = new QLabel(button); icon->setPixmap(toolIcon(name, primary ? Qt::white : QColor("#266de8")).pixmap(28, 28));
+            auto *icon = new QLabel(button); icon->setPixmap(toolIcon(name, primary ? Qt::white : QColor("#128252")).pixmap(28, 28));
             auto *text = new QLabel("<span style='font-size:15px; font-weight:600'>" + title + "</span><br>"
                                    "<span style='font-size:12px'>" + detail + "</span>", button);
-            text->setStyleSheet(primary ? "color: white;" : "color: #24314a;");
+            text->setStyleSheet(primary ? "color: white;" : "color: #151B1C;");
             row->addWidget(icon); row->addWidget(text); row->addStretch();
-            auto *keys = new QLabel(button); keys->setStyleSheet(primary ? "color: #e5edff; font-size:13px;" : "color:#6d7b92; font-size:13px;");
+            auto *keys = new QLabel(button); keys->setStyleSheet(primary ? "color: #FFFFFF; font-size:13px;" : "color:#596660; font-size:13px;");
             row->addWidget(keys);
             for (auto *label : {icon, text, keys}) label->setAttribute(Qt::WA_TransparentForMouseEvents);
             return std::pair{button, keys};
@@ -82,7 +82,7 @@ public:
         auto *recovery = new QFrame(this); recovery->setObjectName("card");
         auto *recoveryLayout = new QHBoxLayout(recovery); recoveryLayout->setContentsMargins(18, 16, 18, 16); recoveryLayout->setSpacing(16);
         preview = new QLabel(this); preview->setFixedSize(112, 70); preview->setAlignment(Qt::AlignCenter);
-        preview->setStyleSheet("background:#f0f4fb; color:#8c9ab2; border-radius:7px;"); recoveryLayout->addWidget(preview);
+        preview->setStyleSheet("background:#E9EDEB; color:#77817E; border-radius:7px;"); recoveryLayout->addWidget(preview);
         auto *recoveryText = new QVBoxLayout;
         recoveryText->addWidget(new QLabel("<b>Pick up where you left off</b>", this));
         historyDetail = new QLabel(this); historyDetail->setObjectName("muted"); historyDetail->setWordWrap(true); recoveryText->addWidget(historyDetail);
@@ -93,7 +93,7 @@ public:
         homeLayout->addWidget(recovery);
         auto *help = new QLabel("<b>Tab</b> Window / Element · <b>P</b> Pen · <b>A</b> Arrow · <b>R</b> Rectangle · <b>T</b> Text<br>"
                                "<b>O</b> Local OCR · <b>C</b> Pick color · <b>Space</b> Pin tools on hover · <b>Scroll</b> Zoom", this);
-        help->setObjectName("muted"); help->setStyleSheet("color:#6d7b92; font-size:12px; padding-top:6px;"); homeLayout->addWidget(help);
+        help->setObjectName("muted"); help->setStyleSheet("color:#596660; font-size:12px; padding-top:6px;"); homeLayout->addWidget(help);
         homeLayout->addStretch();
 
         auto *preferences = new QWidget(this); auto *preferencesLayout = new QVBoxLayout(preferences);

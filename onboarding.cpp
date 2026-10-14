@@ -16,25 +16,25 @@ protected:
     void paintEvent(QPaintEvent *) override
     {
         QPainter p(this); p.setRenderHint(QPainter::Antialiasing);
-        p.fillRect(rect(), QColor("#e9f1ff"));
-        p.setPen(Qt::NoPen); p.setBrush(QColor("#d8e6ff"));
+        p.fillRect(rect(), QColor("#E9EDEB"));
+        p.setPen(Qt::NoPen); p.setBrush(QColor("#DDF6E9"));
         p.drawEllipse(QRectF(-80, -70, 290, 290)); p.drawEllipse(QRectF(150, 360, 250, 250));
         auto card = [&p](QRectF r) {
-            p.setBrush(QColor("#cbd9f0")); p.drawRoundedRect(r.translated(0, 8), 12, 12);
+            p.setBrush(QColor("#D5DDD8")); p.drawRoundedRect(r.translated(0, 8), 12, 12);
             p.setBrush(Qt::white); p.drawRoundedRect(r, 12, 12);
         };
         card({26, 152, 238, 182});
-        p.setPen(QColor("#8c9ab1")); p.setFont(QFont("", 10)); p.drawText(QRectF(44, 168, 200, 22), "YOUR WORKSPACE");
-        p.setPen(QPen(QColor("#edf1f7"), 6, Qt::SolidLine, Qt::RoundCap));
+        p.setPen(QColor("#77817E")); p.setFont(QFont("", 10)); p.drawText(QRectF(44, 168, 200, 22), "YOUR WORKSPACE");
+        p.setPen(QPen(QColor("#E9EDEB"), 6, Qt::SolidLine, Qt::RoundCap));
         for (int y : {216, 236, 256}) p.drawLine(46, y, 224 - (y == 256 ? 52 : 0), y);
         card({64, 282, 194, 136});
-        p.setPen(QPen(QColor("#266de8"), 2)); p.setBrush(Qt::NoBrush); p.drawRoundedRect(QRectF(72, 290, 178, 120), 8, 8);
-        p.setPen(QColor("#24314a")); p.setFont(QFont("", 17, QFont::DemiBold)); p.drawText(QRectF(88, 316, 140, 48), Qt::TextWordWrap, "Keep this\nin view.");
+        p.setPen(QPen(QColor("#128252"), 2)); p.setBrush(Qt::NoBrush); p.drawRoundedRect(QRectF(72, 290, 178, 120), 8, 8);
+        p.setPen(QColor("#151B1C")); p.setFont(QFont("", 17, QFont::DemiBold)); p.drawText(QRectF(88, 316, 140, 48), Qt::TextWordWrap, "Keep this\nin view.");
         p.setPen(QPen(QColor("#ff6775"), 3, Qt::SolidLine, Qt::RoundCap));
         p.drawLine(91, 376, 214, 376);
-        p.setBrush(QColor("#266de8")); p.setPen(Qt::NoPen); p.drawEllipse(QRectF(212, 267, 36, 36));
+        p.setBrush(QColor("#128252")); p.setPen(Qt::NoPen); p.drawEllipse(QRectF(212, 267, 36, 36));
         p.drawPixmap(219, 274, toolIcon("pin", Qt::white).pixmap(22, 22));
-        p.setPen(QColor("#5c7295")); p.setFont(QFont("", 11));
+        p.setPen(QColor("#596660")); p.setFont(QFont("", 11));
         p.drawText(QRectF(28, height() - 72, 234, 40), Qt::AlignCenter | Qt::TextWordWrap, "A reference. A reminder.\nRight where you need it.");
     }
 };
@@ -45,15 +45,15 @@ Onboarding::Onboarding(QSettings &storage, const Hotkeys::Bindings &bindings, QW
 {
     setWindowTitle("Welcome to FastPin"); setFixedSize(780, 600);
     setObjectName("onboarding");
-    setStyleSheet("QDialog#onboarding { background: #fafbfe; } QLabel { color: #24314a; }"
-                  "QLabel#eyebrow { color: #266de8; font-size: 11px; font-weight: 600; }"
+    setStyleSheet("QDialog#onboarding { background: #F6F8F6; } QLabel { color: #151B1C; }"
+                  "QLabel#eyebrow { color: #128252; font-size: 11px; font-weight: 600; }"
                   "QLabel#heading { font-size: 28px; font-weight: 600; }"
-                  "QLabel#detail { color: #6d7b92; font-size: 13px; }"
-                  "QLabel#binding { background: #edf3ff; color: #266de8; border-radius: 6px; padding: 7px; }"
-                  "QPushButton { color: #24314a; background: white; border: 1px solid #dae2ef; border-radius: 8px; min-height: 20px; padding: 10px 16px; }"
-                  "QPushButton:hover { background: #edf3ff; }"
-                  "QPushButton#primary { background: #266de8; color: white; border: 0; }"
-                  "QPushButton#primary:hover { background: #195ccd; }");
+                  "QLabel#detail { color: #596660; font-size: 13px; }"
+                  "QLabel#binding { background: #DDF6E9; color: #128252; border-radius: 6px; padding: 7px; }"
+                  "QPushButton { color: #151B1C; background: white; border: 1px solid #D5DDD8; border-radius: 8px; min-height: 20px; padding: 10px 16px; }"
+                  "QPushButton:hover { background: #DDF6E9; }"
+                  "QPushButton#primary { background: #128252; color: white; border: 0; }"
+                  "QPushButton#primary:hover { background: #0C693F; }");
     auto *outer = new QHBoxLayout(this); outer->setContentsMargins(0, 0, 0, 0); outer->setSpacing(0);
     outer->addWidget(new Preview(this));
     auto *body = new QVBoxLayout; body->setContentsMargins(36, 32, 36, 28); body->setSpacing(20); outer->addLayout(body, 1);

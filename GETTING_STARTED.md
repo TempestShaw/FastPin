@@ -4,13 +4,21 @@ Capture a piece of your screen, add a note, and keep it on your desktop.
 
 ## Install
 
+![Drag FastPin into Applications](public/dmg/install-preview.png)
+
 **macOS preview:** macOS 14 or newer, Apple Silicon. Open the DMG and drag FastPin into Applications. This preview is not notarized. If macOS blocks its first launch, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445). Grant Screen Recording when prompted. Element detection and mouse shortcuts also use Accessibility permission. Follow the first-run guide; reopen it with Getting started.
+
+![Extract the Windows ZIP](public/windows/extract-zip.png)
+
+![Enable Developer Mode](public/windows/developer-mode.png)
 
 **Windows developer preview:** Windows 10 version 2004 or newer / Windows 11, x64. Extract the Windows ZIP into a permanent folder. Enable Developer Mode in Windows Settings, then open PowerShell in the extracted folder and run:
 
 ```powershell
 Add-AppxPackage -Register "$PWD\AppxManifest.xml"
 ```
+
+![Register FastPin and launch it from Start](public/windows/ready-to-launch.png)
 
 Launch FastPin from Start. Keep the extracted folder in place while installed. OCR uses installed Windows OCR language packs; add your language in Windows Settings if needed. See [Microsoft's loose-file registration guide](https://learn.microsoft.com/en-us/windows/apps/develop/testing/loose-file-registration). To uninstall, use Windows Settings → Apps, then remove the extracted folder.
 
