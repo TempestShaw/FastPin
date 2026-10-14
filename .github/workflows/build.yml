@@ -1,0 +1,54 @@
+name: Build and package
+on:
+  push:
+    paths: ['**']
+  pull_request:
+    paths: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          cache: true
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Package runtime dependencies
+        run: cmake --install build --config Release --prefix "${{ github.workspace }}/build/package"
+      - name: Build Windows MSIX (unsigned development artifact)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./package-windows.ps1 -PackageDirectory build/package -Output build/FastPin-x64.msix
+      - name: Verify Windows deployed runtime
+        if: runner.os == 'Windows'
+        run: python verify-windows-package.py build/package
+      - name: Build macOS DMG (ad-hoc development artifact)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          python3 -m venv build/dmg-tools
+          build/dmg-tools/bin/python -m pip install dmgbuild==1.6.7
+          codesign --force --deep --sign - build/package/FastPin.app
+          FASTPIN_DMG_PYTHON="$PWD/build/dmg-tools/bin/python" ./package-dmg.sh build/package/FastPin.app build/FastPin-macOS.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FastPin-${{ matrix.os }}
+          path: |
+            build/package/
+            build/*.msix
+            build/*.dmg

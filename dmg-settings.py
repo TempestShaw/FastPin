@@ -1,0 +1,17 @@
+app = defines['app']
+format = 'ULMO'
+filesystem = 'HFS+'
+files = [(app, 'FastPin.app')]
+symlinks = {'Applications': '/Applications'}
+icon = defines['icon']
+background = defines['background']
+window_rect = ((200, 160), (660, 468))
+default_view = 'icon-view'
+show_status_bar = False
+show_tab_view = False
+show_toolbar = False
+show_pathbar = False
+show_sidebar = False
+icon_size = 112
+text_size = 12
+icon_locations = {'FastPin.app': (160, 235), 'Applications': (500, 235)}

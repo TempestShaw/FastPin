@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="108 108 296 296">
+  <title>FastPin menu bar mark</title>
+  <g fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M188 140h-30q-18 0-18 18v30m184-48h30q18 0 18 18v30m0 136v30q0 18-18 18h-30m-136 0h-30q-18 0-18-18v-30"/>
+  </g>
+  <g transform="rotate(32 256 255)" fill="#000">
+    <path d="M233 180h46q8 0 8 8v5q0 7-7 8l-3 45 19 18q6 6 2 13-2 3-8 3h-68q-6 0-8-3-4-7 2-13l19-18-3-45q-7-1-7-8v-5q0-8 8-8z"/>
+    <path d="M256 278v48" fill="none" stroke="#000" stroke-width="19" stroke-linecap="round"/>
+  </g>
+</svg>
