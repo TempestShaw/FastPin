@@ -123,6 +123,8 @@ public:
         });
         connect(apply, &QPushButton::clicked, this, [this] {
             Hotkeys::Bindings bindings; for (int i = 0; i < 3; ++i) bindings[i] = edits[i]->binding();
+            for (auto *edit : edits) edit->clearFocus();
+            shortcutsRecording = false;
             const QString error = hotkeys.apply(bindings);
             if (!error.isEmpty()) { settingsFeedback->setText(error); return; }
             Hotkeys::save(settings, bindings); refreshShortcuts();
@@ -180,6 +182,9 @@ public:
         for (int i = 0; i < 3; ++i) edits[i]->setBinding(bindings[i]);
         if (!error.isEmpty()) { settingsFeedback->setText(error); status->setText("A shortcut is unavailable. Change it in Preferences."); }
         refreshShortcuts(); refreshHistory();
+        connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
+            QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
+        });
         qApp->installEventFilter(this);
     }
 
@@ -211,14 +216,14 @@ protected:
             openImage(static_cast<QFileOpenEvent *>(event)->file());
             return true;
         }
-        if (event->type() == QEvent::FocusIn) {
+        if (event->type() == QEvent::FocusIn && isVisible() && isActiveWindow()) {
             auto *widget = qobject_cast<QWidget *>(object);
             for (auto *edit : edits) if (widget && (widget == edit || edit->isAncestorOf(widget))) {
                 hotkeys.suspend(); shortcutsRecording = true; break;
             }
         } else if (event->type() == QEvent::FocusOut && shortcutsRecording) {
             QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
-        } else if (object == this && (event->type() == QEvent::WindowActivate || event->type() == QEvent::WindowDeactivate)) {
+        } else if (object == this && (event->type() == QEvent::WindowActivate || event->type() == QEvent::WindowDeactivate || event->type() == QEvent::Hide)) {
             QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
         }
         return false;
@@ -229,7 +234,8 @@ private:
     {
         const auto *focus = QApplication::focusWidget();
         bool recording = false;
-        if (isActiveWindow()) for (auto *edit : edits) if (focus && (focus == edit || edit->isAncestorOf(focus))) recording = true;
+        if (isVisible() && isActiveWindow() && QGuiApplication::applicationState() == Qt::ApplicationActive)
+            for (auto *edit : edits) if (focus && (focus == edit || edit->isAncestorOf(focus))) recording = true;
         if (recording == shortcutsRecording) return;
         shortcutsRecording = recording;
         if (recording) hotkeys.suspend();
