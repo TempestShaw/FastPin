@@ -9,6 +9,15 @@
   <meta property="og:title" content="FastPin — Capture, annotate, pin">
   <meta property="og:description" content="Pin a screenshot above your work. Translate or copy text from anywhere on screen.">
   <meta property="og:type" content="website">
+  <link rel="alternate" hreflang="en" href="https://tempestshaw.github.io/FastPin/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://tempestshaw.github.io/FastPin/zh/">
+  <script>
+    // Browsers that prefer Chinese start on the Chinese page unless the visitor picked a language.
+    try {
+      if (!localStorage.getItem("fastpin-lang") && /^zh\b/i.test((navigator.languages || [])[0] || navigator.language))
+        location.replace("zh/" + location.hash);
+    } catch (error) { /* Storage blocked: stay on English. */ }
+  </script>
   <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -26,6 +35,7 @@
         <a href="#shortcuts">Shortcuts</a>
         <a href="https://github.com/TempestShaw/FastPin">GitHub</a>
       </nav>
+      <a class="lang-switch" href="zh/" hreflang="zh-Hant" lang="zh-Hant" data-lang-choice="zh">中文</a>
       <a class="button button-small" href="#download">Download</a>
     </div>
   </header>

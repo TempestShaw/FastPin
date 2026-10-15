@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FastPin — 截圖、標註、釘在桌面</title>
+  <meta name="description" content="FastPin 把截圖釘在工作畫面上方，就地翻譯文字，也能直接從螢幕複製文字。macOS 與 Windows 免費開源。">
+  <meta name="theme-color" content="#151B1C">
+  <meta property="og:title" content="FastPin — 截圖、標註、釘在桌面">
+  <meta property="og:description" content="把截圖釘在工作畫面上方，從螢幕任何地方翻譯或複製文字。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_TW">
+  <link rel="alternate" hreflang="en" href="https://tempestshaw.github.io/FastPin/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://tempestshaw.github.io/FastPin/zh/">
+  <link rel="icon" href="../assets/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要內容</a>
+
+  <header class="nav">
+    <div class="wrap nav-row">
+      <a class="brand" href="#main" aria-label="FastPin 首頁">
+        <img src="../assets/app-icon.svg" alt="" width="32" height="32">
+        <span>FastPin</span>
+      </a>
+      <nav class="nav-links" aria-label="頁面區塊">
+        <a href="#features">功能</a>
+        <a href="#shortcuts">快捷鍵</a>
+        <a href="https://github.com/TempestShaw/FastPin">GitHub</a>
+      </nav>
+      <a class="lang-switch" href="../" hreflang="en" lang="en" data-lang-choice="en">English</a>
+      <a class="button button-small" href="#download">下載</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span>免費 · 開源 · macOS 與 Windows</p>
+        <h1><span class="phrase">重要的，</span><span class="phrase">釘在眼前。</span><br><span class="accent"><span class="phrase">手邊的事，</span><span class="phrase">繼續做。</span></span></h1>
+        <p class="lede">框選螢幕上任何一塊，畫上重點，讓它浮在工作畫面上方。一個快捷鍵，就能從任何地方翻譯或複製文字。</p>
+        <div class="hero-actions">
+          <a class="button" href="#download" data-primary-download>下載 FastPin</a>
+          <a class="button button-ghost" href="#features">看看能做什麼</a>
+        </div>
+        <p class="fineprint" data-release-line>最新預覽版 · 不用帳號，不追蹤</p>
+      </div>
+
+      <div class="demo" aria-hidden="true">
+        <div class="desk">
+          <div class="window">
+            <div class="window-bar"><i></i><i></i><i></i><span>Q3 規劃.pdf</span></div>
+            <div class="window-body">
+              <div class="doc-title">上線檢查清單</div>
+              <div class="doc-line w80"></div>
+              <div class="doc-line w60"></div>
+              <div class="chart">
+                <b style="--h:38%"></b><b style="--h:62%"></b><b style="--h:48%"></b><b style="--h:84%"></b><b style="--h:70%"></b>
+              </div>
+              <div class="doc-line w70"></div>
+              <div class="doc-line w40"></div>
+            </div>
+            <div class="selection">
+              <span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>
+              <span class="size">412 × 236</span>
+            </div>
+            <div class="toolbar">
+              <span class="tool on">✎</span><span class="tool">↗</span><span class="tool">▢</span><span class="tool">T</span><span class="swatch"></span>
+            </div>
+          </div>
+          <div class="pin">
+            <div class="pin-chart">
+              <b style="--h:38%"></b><b style="--h:62%"></b><b style="--h:48%"></b><b style="--h:84%"></b><b style="--h:70%"></b>
+            </div>
+            <div class="pin-arrow"></div>
+            <div class="pin-badge">已釘選 · 100%</div>
+          </div>
+          <div class="keys-toast"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>2</kbd></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="steps wrap" aria-label="使用方式">
+      <div class="step"><span class="num">1</span><div><h3>框選</h3><p>拖曳一塊區域，或點一下視窗、介面元素。按 Tab 切換偵測方式。</p></div></div>
+      <div class="step"><span class="num">2</span><div><h3>標註</h3><p>P 畫筆、A 箭頭、R 方框、T 文字，隨時可以復原、重做。</p></div></div>
+      <div class="step"><span class="num">3</span><div><h3>釘住</h3><p>按空白鍵釘到桌面。拖曳移動、滾輪縮放，游標停在上面按空白鍵叫出工具。</p></div></div>
+    </section>
+
+    <section id="features" class="section wrap">
+      <div class="section-head">
+        <p class="eyebrow">功能</p>
+        <h2>小工具，常用的都在。</h2>
+      </div>
+
+      <div class="bento">
+        <article class="tile tile-translate">
+          <div class="tile-text">
+            <h3>就地翻譯</h3>
+            <p>連按兩下 <kbd data-key="ctrl">Ctrl</kbd>，框住文字放開，翻譯卡片就出現在旁邊。剪貼簿裡的東西不會被蓋掉。</p>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-head"><strong lang="en">deadline</strong><span class="mock-icons">🔊 ⧉ ✕</span></div>
+            <p>截止期限，最後期限，期限，死線，限期</p>
+            <div class="mock-card-foot"><span>CC-CEDICT · 離線</span><span class="pill">線上</span></div>
+          </div>
+        </article>
+
+        <article class="tile tile-ocr">
+          <div class="tile-text">
+            <h3>從螢幕複製文字</h3>
+            <p>框選任何區域，裡面的文字直接進剪貼簿。辨識全程在你的電腦上完成。</p>
+          </div>
+          <div class="mock-ocr">
+            <div class="ocr-box"><span>發票 #2024-118</span><span>11 月 30 日到期</span></div>
+            <div class="toast">✓ 已複製 24 個字元</div>
+          </div>
+        </article>
+
+        <article class="tile tile-color">
+          <div class="tile-text">
+            <h3>吸取任何像素</h3>
+            <p>游標移過去按 C。Shift 切換 HEX 與 RGB，方向鍵一次移動一個像素。</p>
+          </div>
+          <div class="mock-loupe">
+            <div class="loupe" data-loupe></div>
+            <span class="chip"><i></i>#19D98A</span>
+          </div>
+        </article>
+
+        <article class="tile tile-markup">
+          <div class="tile-text">
+            <h3>標註完還能再改</h3>
+            <p>畫筆、箭頭、方框和文字，顏色隨你挑。點一下已有的文字就能修改。</p>
+          </div>
+          <div class="mock-toolbar">
+            <span class="tool on">✎</span><span class="tool">↗</span><span class="tool">▢</span><span class="tool">T</span>
+            <span class="sep"></span>
+            <span class="swatch" style="--c:#FF5A65"></span><span class="swatch" style="--c:#19D98A"></span><span class="swatch" style="--c:#287CF4"></span>
+          </div>
+        </article>
+
+        <article class="tile tile-restore">
+          <div class="tile-text">
+            <h3>關掉了也找得回來</h3>
+            <p>太早關掉釘選圖？一鍵還原上一張，標註和縮放都還在。</p>
+          </div>
+          <div class="mock-restore">
+            <div class="thumb"></div>
+            <div><strong>還原上一張圖片</strong><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>4</kbd></span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="shortcuts" class="section section-dark">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">快捷鍵</p>
+          <h2>一隻手，不用伸長手指。</h2>
+          <p class="section-lede">預設快捷鍵全部落在左手範圍內，也都能在設定裡改，滑鼠側鍵也行。</p>
+        </div>
+        <ul class="shortcut-list">
+          <li class="featured"><span class="label">翻譯</span><h3>連按兩下 Control</h3><span class="keys"><kbd data-key="control-cap"><b></b>Ctrl</kbd><kbd data-key="control-cap"><b></b>Ctrl</kbd></span><span class="hint">或按 <kbd data-key="ctrl">Ctrl</kbd> <kbd data-key="shift">Shift</kbd> <kbd>1</kbd>。Control 搭配其他鍵一起按時不會觸發。</span></li>
+          <li><span class="label">截圖</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>2</kbd></span></li>
+          <li><span class="label">把剪貼簿圖片釘到桌面</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>3</kbd></span></li>
+          <li><span class="label">還原上一張圖片</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>4</kbd></span></li>
+          <li><span class="label">從螢幕複製文字</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>5</kbd></span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section wrap privacy" aria-label="隱私">
+      <div class="privacy-item"><strong>本機文字辨識</strong><span>辨識過程不會離開你的電腦。</span></div>
+      <div class="privacy-item"><strong>離線字典</strong><span>單字查內建的 CC-CEDICT，只有整句才會送到 MyMemory 線上翻譯。</span></div>
+      <div class="privacy-item"><strong>不用帳號</strong><span>不必登入、不用 API 金鑰，也不用 LLM。</span></div>
+      <div class="privacy-item"><strong>MIT 授權</strong><span>程式碼公開，歡迎回報問題或送修正。</span></div>
+    </section>
+
+    <section id="download" class="section wrap">
+      <div class="section-head">
+        <p class="eyebrow">下載</p>
+        <h2>取得 FastPin</h2>
+        <p class="section-lede" data-release-note>免費預覽版。<a href="https://github.com/TempestShaw/FastPin/releases">所有版本與更新說明 ↗</a></p>
+      </div>
+      <div class="downloads">
+        <article class="download" data-os="mac">
+          <div class="download-head">
+            <h3>macOS</h3>
+            <span class="req">macOS 14 以上 · Apple 晶片</span>
+          </div>
+          <a class="button" href="https://github.com/TempestShaw/FastPin/releases" data-asset="FastPin-macOS.dmg">下載 Mac 版</a>
+          <p>打開 DMG，把 FastPin 拖進「應用程式」。它待在選單列，會自己更新。</p>
+          <details>
+            <summary>安裝說明</summary>
+            <img src="../assets/install-preview.svg" alt="把 FastPin 拖進應用程式資料夾" loading="lazy">
+            <p>預覽版尚未經過 Apple 公證。如果第一次開啟被 macOS 擋下，請參考 <a href="https://support.apple.com/zh-tw/102445">Apple 的說明</a>。系統詢問時請允許「螢幕錄製」；開啟「輔助使用」權限後，才能用介面元素偵測、滑鼠快捷鍵和連按兩下 Control。</p>
+          </details>
+        </article>
+        <article class="download" data-os="windows">
+          <div class="download-head">
+            <h3>Windows</h3>
+            <span class="req">Windows 10 2004 以上 / 11 · x64</span>
+          </div>
+          <a class="button button-ghost" href="https://github.com/TempestShaw/FastPin/releases" data-asset="FastPin-Windows-x64.zip">下載 Windows 版</a>
+          <p>把 ZIP 解壓到一個固定的資料夾，註冊一次後就能從「開始」功能表開啟。</p>
+          <details>
+            <summary>安裝說明</summary>
+            <div class="install-pair">
+              <img src="../assets/extract-zip.svg" alt="解壓縮 FastPin ZIP" loading="lazy">
+              <img src="../assets/developer-mode.svg" alt="開啟開發人員模式" loading="lazy">
+            </div>
+            <p>先開啟「開發人員模式」，在該資料夾開啟 PowerShell，執行 <code>Add-AppxPackage -Register "$PWD\AppxManifest.xml"</code>。Windows 版目前需要手動更新。</p>
+          </details>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <span class="brand brand-small"><img src="../assets/app-icon.svg" alt="" width="22" height="22">FastPin</span>
+      <span>MIT 授權 · 字典資料 CC BY-SA 4.0（CC-CEDICT）</span>
+      <span class="footer-links">
+        <a href="https://github.com/TempestShaw/FastPin">原始碼</a>
+        <a href="https://github.com/TempestShaw/FastPin/issues">意見回饋</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="../main.js" defer></script>
+</body>
+</html>

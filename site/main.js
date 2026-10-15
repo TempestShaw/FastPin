@@ -4,6 +4,17 @@
   const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent;
   const isMac = /mac|iphone|ipad/i.test(platform);
   const isWindows = /win/i.test(platform);
+  const zh = document.documentElement.lang.startsWith("zh");
+  const text = zh
+    ? { mac: "下載 Mac 版", windows: "下載 Windows 版", line: (v) => `版本 ${v} · 不用帳號，不追蹤`,
+        note: (v, preview) => `版本 ${v}${preview ? "（預覽版）" : ""}。`, notes: "更新說明 ↗" }
+    : { mac: "Download for Mac", windows: "Download for Windows", line: (v) => `Version ${v} · No account, no tracking`,
+        note: (v, preview) => `Version ${v}${preview ? " (preview)" : ""}. `, notes: "Release notes ↗" };
+
+  // Remember an explicit language choice so the English page stops redirecting.
+  document.querySelectorAll("[data-lang-choice]").forEach((link) => link.addEventListener("click", () => {
+    try { localStorage.setItem("fastpin-lang", link.dataset.langChoice); } catch (error) { /* Storage blocked. */ }
+  }));
 
   // FastPin uses physical Control on both systems; show the native symbols on a Mac.
   const keyLabels = isMac ? { ctrl: "⌃", shift: "⇧" } : { ctrl: "Ctrl", shift: "Shift" };
@@ -21,7 +32,7 @@
   const primary = document.querySelector("[data-primary-download]");
   if (recommended) {
     recommended.classList.add("recommended");
-    if (primary) primary.textContent = isMac ? "Download for Mac" : "Download for Windows";
+    if (primary) primary.textContent = isMac ? text.mac : text.windows;
   }
 
   // Seven-by-seven pixel loupe for the color tile.
@@ -55,14 +66,14 @@
       });
       const version = release.tag_name.replace(/^v/, "");
       const line = document.querySelector("[data-release-line]");
-      if (line) line.textContent = `Version ${version} · No account, no tracking`;
+      if (line) line.textContent = text.line(version);
       const note = document.querySelector("[data-release-note]");
       if (note) {
         // Build nodes rather than HTML so API text can never inject markup.
         const notes = document.createElement("a");
         notes.href = `https://github.com/${repo}/releases/tag/${encodeURIComponent(release.tag_name)}`;
-        notes.textContent = "Release notes ↗";
-        note.replaceChildren(`Version ${version}${release.prerelease ? " (preview)" : ""}. `, notes);
+        notes.textContent = text.notes;
+        note.replaceChildren(text.note(version, release.prerelease), notes);
       }
     })
     .catch((error) => console.warn("FastPin: using the releases page for downloads.", error));
