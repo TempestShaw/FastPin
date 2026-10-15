@@ -3,15 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FastPin — 截圖、標註、釘在桌面</title>
+  <title>FastPin — 截圖 + 釘選</title>
   <meta name="description" content="FastPin 把截圖釘在工作畫面上方，就地翻譯文字，也能直接從螢幕複製文字。macOS 與 Windows 免費開源。">
   <meta name="theme-color" content="#151B1C">
-  <meta property="og:title" content="FastPin — 截圖、標註、釘在桌面">
+  <meta property="og:title" content="FastPin — 截圖 + 釘選">
   <meta property="og:description" content="把截圖釘在工作畫面上方，從螢幕任何地方翻譯或複製文字。">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="zh_TW">
   <link rel="alternate" hreflang="en" href="https://tempestshaw.github.io/FastPin/">
-  <link rel="alternate" hreflang="zh-Hant" href="https://tempestshaw.github.io/FastPin/zh/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://tempestshaw.github.io/FastPin/zh-hant/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://tempestshaw.github.io/FastPin/zh-hans/">
   <link rel="icon" href="../assets/app-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../style.css">
 </head>
@@ -29,7 +30,11 @@
         <a href="#shortcuts">快捷鍵</a>
         <a href="https://github.com/TempestShaw/FastPin">GitHub</a>
       </nav>
-      <a class="lang-switch" href="../" hreflang="en" lang="en" data-lang-choice="en">English</a>
+      <nav class="langs" aria-label="語言">
+        <a href="../" hreflang="en" lang="en" data-lang-choice="en">English</a>
+        <a href="../zh-hant/" hreflang="zh-Hant" lang="zh-Hant" data-lang-choice="zh-hant" aria-current="page">繁體</a>
+        <a href="../zh-hans/" hreflang="zh-Hans" lang="zh-Hans" data-lang-choice="zh-hans">简体</a>
+      </nav>
       <a class="button button-small" href="#download">下載</a>
     </div>
   </header>
@@ -38,7 +43,7 @@
     <section class="hero wrap">
       <div class="hero-copy">
         <p class="eyebrow"><span class="dot"></span>免費 · 開源 · macOS 與 Windows</p>
-        <h1><span class="phrase">重要的，</span><span class="phrase">釘在眼前。</span><br><span class="accent"><span class="phrase">手邊的事，</span><span class="phrase">繼續做。</span></span></h1>
+        <h1>截圖 + <span class="accent">釘選</span></h1>
         <p class="lede">框選螢幕上任何一塊，畫上重點，讓它浮在工作畫面上方。一個快捷鍵，就能從任何地方翻譯或複製文字。</p>
         <div class="hero-actions">
           <a class="button" href="#download" data-primary-download>下載 FastPin</a>
@@ -90,13 +95,13 @@
     <section id="features" class="section wrap">
       <div class="section-head">
         <p class="eyebrow">功能</p>
-        <h2>小工具，常用的都在。</h2>
+        <h2>功能一覽</h2>
       </div>
 
       <div class="bento">
         <article class="tile tile-translate">
           <div class="tile-text">
-            <h3>就地翻譯</h3>
+            <h3>翻譯選取的文字</h3>
             <p>連按兩下 <kbd data-key="ctrl">Ctrl</kbd>，框住文字放開，翻譯卡片就出現在旁邊。剪貼簿裡的東西不會被蓋掉。</p>
           </div>
           <div class="mock-card">
@@ -119,7 +124,7 @@
 
         <article class="tile tile-color">
           <div class="tile-text">
-            <h3>吸取任何像素</h3>
+            <h3>取色</h3>
             <p>游標移過去按 C。Shift 切換 HEX 與 RGB，方向鍵一次移動一個像素。</p>
           </div>
           <div class="mock-loupe">
@@ -130,7 +135,7 @@
 
         <article class="tile tile-markup">
           <div class="tile-text">
-            <h3>標註完還能再改</h3>
+            <h3>標註</h3>
             <p>畫筆、箭頭、方框和文字，顏色隨你挑。點一下已有的文字就能修改。</p>
           </div>
           <div class="mock-toolbar">
@@ -142,7 +147,7 @@
 
         <article class="tile tile-restore">
           <div class="tile-text">
-            <h3>關掉了也找得回來</h3>
+            <h3>還原上一張圖片</h3>
             <p>太早關掉釘選圖？一鍵還原上一張，標註和縮放都還在。</p>
           </div>
           <div class="mock-restore">
@@ -157,7 +162,7 @@
       <div class="wrap">
         <div class="section-head">
           <p class="eyebrow">快捷鍵</p>
-          <h2>一隻手，不用伸長手指。</h2>
+          <h2>預設快捷鍵</h2>
           <p class="section-lede">預設快捷鍵全部落在左手範圍內，也都能在設定裡改，滑鼠側鍵也行。</p>
         </div>
         <ul class="shortcut-list">
@@ -180,7 +185,7 @@
     <section id="download" class="section wrap">
       <div class="section-head">
         <p class="eyebrow">下載</p>
-        <h2>取得 FastPin</h2>
+        <h2>下載</h2>
         <p class="section-lede" data-release-note>免費預覽版。<a href="https://github.com/TempestShaw/FastPin/releases">所有版本與更新說明 ↗</a></p>
       </div>
       <div class="downloads">

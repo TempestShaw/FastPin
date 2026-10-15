@@ -4,12 +4,15 @@
   const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent;
   const isMac = /mac|iphone|ipad/i.test(platform);
   const isWindows = /win/i.test(platform);
-  const zh = document.documentElement.lang.startsWith("zh");
-  const text = zh
-    ? { mac: "下載 Mac 版", windows: "下載 Windows 版", line: (v) => `版本 ${v} · 不用帳號，不追蹤`,
-        note: (v, preview) => `版本 ${v}${preview ? "（預覽版）" : ""}。`, notes: "更新說明 ↗" }
-    : { mac: "Download for Mac", windows: "Download for Windows", line: (v) => `Version ${v} · No account, no tracking`,
-        note: (v, preview) => `Version ${v}${preview ? " (preview)" : ""}. `, notes: "Release notes ↗" };
+  const strings = {
+    en: { mac: "Download for Mac", windows: "Download for Windows", line: (v) => `Version ${v} · No account, no tracking`,
+          note: (v, preview) => `Version ${v}${preview ? " (preview)" : ""}. `, notes: "Release notes ↗" },
+    "zh-Hant": { mac: "下載 Mac 版", windows: "下載 Windows 版", line: (v) => `版本 ${v} · 不用帳號，不追蹤`,
+                 note: (v, preview) => `版本 ${v}${preview ? "（預覽版）" : ""}。`, notes: "更新說明 ↗" },
+    "zh-Hans": { mac: "下载 Mac 版", windows: "下载 Windows 版", line: (v) => `版本 ${v} · 无需账号，不追踪`,
+                 note: (v, preview) => `版本 ${v}${preview ? "（预览版）" : ""}。`, notes: "更新说明 ↗" },
+  };
+  const text = strings[document.documentElement.lang] || strings.en;
 
   // Remember an explicit language choice so the English page stops redirecting.
   document.querySelectorAll("[data-lang-choice]").forEach((link) => link.addEventListener("click", () => {

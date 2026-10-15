@@ -3,19 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FastPin — Capture, annotate, pin</title>
+  <title>FastPin — Capture &amp; Pin</title>
   <meta name="description" content="FastPin pins screenshots above your work, translates text in place and copies text from the screen. Free and open source for macOS and Windows.">
   <meta name="theme-color" content="#151B1C">
-  <meta property="og:title" content="FastPin — Capture, annotate, pin">
+  <meta property="og:title" content="FastPin — Capture &amp; Pin">
   <meta property="og:description" content="Pin a screenshot above your work. Translate or copy text from anywhere on screen.">
   <meta property="og:type" content="website">
   <link rel="alternate" hreflang="en" href="https://tempestshaw.github.io/FastPin/">
-  <link rel="alternate" hreflang="zh-Hant" href="https://tempestshaw.github.io/FastPin/zh/">
+  <link rel="alternate" hreflang="zh-Hant" href="https://tempestshaw.github.io/FastPin/zh-hant/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://tempestshaw.github.io/FastPin/zh-hans/">
   <script>
-    // Browsers that prefer Chinese start on the Chinese page unless the visitor picked a language.
+    // Browsers that prefer Chinese start on a Chinese page unless the visitor picked a language.
     try {
-      if (!localStorage.getItem("fastpin-lang") && /^zh\b/i.test((navigator.languages || [])[0] || navigator.language))
-        location.replace("zh/" + location.hash);
+      const preferred = (navigator.languages || [])[0] || navigator.language || "";
+      if (!localStorage.getItem("fastpin-lang") && /^zh\b/i.test(preferred))
+        location.replace((!/hans/i.test(preferred) && /hant|tw|hk|mo/i.test(preferred) ? "zh-hant/" : "zh-hans/") + location.hash);
     } catch (error) { /* Storage blocked: stay on English. */ }
   </script>
   <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
@@ -35,7 +37,11 @@
         <a href="#shortcuts">Shortcuts</a>
         <a href="https://github.com/TempestShaw/FastPin">GitHub</a>
       </nav>
-      <a class="lang-switch" href="zh/" hreflang="zh-Hant" lang="zh-Hant" data-lang-choice="zh">中文</a>
+      <nav class="langs" aria-label="Language">
+        <a href="./" hreflang="en" lang="en" data-lang-choice="en" aria-current="page">English</a>
+        <a href="zh-hant/" hreflang="zh-Hant" lang="zh-Hant" data-lang-choice="zh-hant">繁體</a>
+        <a href="zh-hans/" hreflang="zh-Hans" lang="zh-Hans" data-lang-choice="zh-hans">简体</a>
+      </nav>
       <a class="button button-small" href="#download">Download</a>
     </div>
   </header>
@@ -44,7 +50,7 @@
     <section class="hero wrap">
       <div class="hero-copy">
         <p class="eyebrow"><span class="dot"></span>Free · Open source · macOS &amp; Windows</p>
-        <h1>Pin what matters.<br><span class="accent">Keep working.</span></h1>
+        <h1>Capture &amp; <span class="accent">Pin</span></h1>
         <p class="lede">Select any part of your screen, mark it up, and keep it floating above your work. Translate or copy text from anywhere with one shortcut.</p>
         <div class="hero-actions">
           <a class="button" href="#download" data-primary-download>Download FastPin</a>
@@ -96,13 +102,13 @@
     <section id="features" class="section wrap">
       <div class="section-head">
         <p class="eyebrow">Features</p>
-        <h2>Small tool. Everything you reach for.</h2>
+        <h2>What it does</h2>
       </div>
 
       <div class="bento">
         <article class="tile tile-translate">
           <div class="tile-text">
-            <h3>Translate in place</h3>
+            <h3>Translate selected text</h3>
             <p>Tap <kbd data-key="ctrl">Ctrl</kbd> twice, select text, release. A card shows the meaning right where you are. Your clipboard stays untouched.</p>
           </div>
           <div class="mock-card">
@@ -125,7 +131,7 @@
 
         <article class="tile tile-color">
           <div class="tile-text">
-            <h3>Pick any pixel</h3>
+            <h3>Color picker</h3>
             <p>Hover and press C. Shift switches HEX and RGB; arrow keys move one pixel.</p>
           </div>
           <div class="mock-loupe">
@@ -136,7 +142,7 @@
 
         <article class="tile tile-markup">
           <div class="tile-text">
-            <h3>Mark it up, then edit again</h3>
+            <h3>Annotate</h3>
             <p>Pen, arrow, rectangle and text, in any color. Click existing text to change it.</p>
           </div>
           <div class="mock-toolbar">
@@ -148,7 +154,7 @@
 
         <article class="tile tile-restore">
           <div class="tile-text">
-            <h3>Bring it back</h3>
+            <h3>Restore the last image</h3>
             <p>Closed a pin too soon? Restore the last image with its annotations and zoom.</p>
           </div>
           <div class="mock-restore">
@@ -163,7 +169,7 @@
       <div class="wrap">
         <div class="section-head">
           <p class="eyebrow">Shortcuts</p>
-          <h2>One hand. No reaching.</h2>
+          <h2>Default shortcuts</h2>
           <p class="section-lede">Every default sits under your left hand. Change any of them in Settings, including mouse side buttons.</p>
         </div>
         <ul class="shortcut-list">
@@ -186,7 +192,7 @@
     <section id="download" class="section wrap">
       <div class="section-head">
         <p class="eyebrow">Download</p>
-        <h2>Get FastPin</h2>
+        <h2>Download</h2>
         <p class="section-lede" data-release-note>Free preview builds. <a href="https://github.com/TempestShaw/FastPin/releases">All releases and notes ↗</a></p>
       </div>
       <div class="downloads">

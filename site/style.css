@@ -18,6 +18,9 @@
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   color-scheme: light;
 }
+/* Each Chinese script uses its own system font so glyph shapes match the page. */
+:root:lang(zh-Hant) { --font: -apple-system, BlinkMacSystemFont, "PingFang TC", "Segoe UI", "Microsoft JhengHei", system-ui, sans-serif; }
+:root:lang(zh-Hans) { --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0E1213; --surface: #151B1C; --surface-2: #1C2426; --line: #2A3436;
@@ -80,13 +83,14 @@ kbd {
 .nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; }
 .nav-links a { text-decoration: none; color: var(--muted); }
 .nav-links a:hover { color: var(--text); }
-.lang-switch { font-size: 14px; color: var(--muted); text-decoration: none; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; }
-.lang-switch:hover { color: var(--text); background: var(--surface); }
+.langs { display: flex; gap: 12px; font-size: 14px; }
+.langs a { color: var(--muted); text-decoration: none; }
+.langs a:hover { color: var(--text); }
+.langs [aria-current] { color: var(--text); font-weight: 600; }
 
 /* Chinese: no negative tracking on CJK headings, a little more line height. */
 :lang(zh) h1, :lang(zh) h2, :lang(zh) h3 { letter-spacing: 0; line-height: 1.2; }
 body:lang(zh) { line-height: 1.7; }
-.phrase { display: inline-block; } /* Break CJK headlines between phrases, never mid-phrase. */
 .hero h1:lang(zh) { font-size: clamp(34px, 9vw, 56px); }
 
 /* Hero */
@@ -253,7 +257,7 @@ details a { color: var(--mint-ink); }
 }
 @media (max-width: 640px) {
   .nav-links { display: none; }
-  .lang-switch { margin-left: auto; }
+  .langs { margin-left: auto; }
   .steps, .downloads, .shortcut-list { grid-template-columns: 1fr; }
   .shortcut-list .featured, .shortcut-list li:not(.featured) { grid-column: auto; grid-row: auto; }
   .bento { grid-template-columns: 1fr; }
