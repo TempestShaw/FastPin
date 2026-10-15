@@ -38,7 +38,7 @@ Press Escape to cancel. If no text is found, your clipboard is kept. Change the 
 
 ## Dictionary and translation
 
-Press **Ctrl+D**, drag around the text and release the mouse to translate immediately. Choose **Dictionary / translate** in the panel or menu bar/tray for the same flow. Existing Ctrl+D paste bindings move to Ctrl+Shift+3; capture and restore bindings are kept.
+Press **Ctrl+Shift+6**, drag around the text and release the mouse to translate immediately. Choose **Dictionary / translate** in the panel or menu bar/tray for the same flow. Like every default, it uses Ctrl+Shift so it never takes over Ctrl+D (end of input in terminals, forward delete in macOS text fields, bookmarks in browsers).
 
 The card appears immediately with **Recognizing text…**, then shows the dictionary result or **Translating…** in place. You can close it while recognition is running; it stays closed when the result arrives.
 

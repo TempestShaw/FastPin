@@ -6,6 +6,7 @@
 static int nextHotkeyBase = 0x5a00;
 static constexpr int pinToolsSlot = hotkeyActionCount; // Space while a pin is hovered.
 static constexpr int hotkeySlotCount = hotkeyActionCount + 1;
+static constexpr int bindingsVersion = 2; // 2: Dictionary default moved off Control+D.
 static QList<int> availableHotkeyBases;
 
 #ifdef Q_OS_MACOS
@@ -73,37 +74,49 @@ Shortcut Shortcut::fromNativeKey(quint32 virtualKey, Qt::KeyboardModifiers modif
     return QKeySequence(Qt::Key_unknown);
 }
 
-Hotkeys::Bindings Hotkeys::defaults()
+static Qt::Modifier primaryModifier()
 {
 #ifdef Q_OS_MACOS
-    const auto control = Qt::META; // Qt Meta is physical Control; Qt Control is Command.
+    return Qt::META; // Qt Meta is physical Control; Qt Control is Command.
 #else
-    const auto control = Qt::CTRL;
+    return Qt::CTRL;
 #endif
+}
+
+Hotkeys::Bindings Hotkeys::defaults()
+{
+    const auto control = primaryModifier();
+    // Keep every default on Control+Shift: plain Control+D is EOF/forward-delete and a browser bookmark key.
     return {QKeySequence(control | Qt::SHIFT | Qt::Key_2), QKeySequence(control | Qt::SHIFT | Qt::Key_3),
             QKeySequence(control | Qt::SHIFT | Qt::Key_4), QKeySequence(control | Qt::SHIFT | Qt::Key_5),
-            QKeySequence(control | Qt::Key_D)};
+            QKeySequence(control | Qt::SHIFT | Qt::Key_6)};
 }
+
+static QString bindingKey(int action) { return QString("shortcuts/%1").arg(action); }
 
 Hotkeys::Bindings Hotkeys::load(QSettings &settings)
 {
     auto result = defaults();
     for (int i = 0; i < hotkeyActionCount; ++i)
-        result[i] = Shortcut::fromString(settings.value(QString("shortcuts/%1").arg(i), result[i].toString(QKeySequence::PortableText)).toString());
-    // Move the old Ctrl+D paste shortcut to make room for Dictionary.
-    if (!settings.contains("shortcuts/4") && result[1] == result[4]) {
-        result[1] = defaults()[1];
-        for (int i : {0, 2, 3}) if (result[i] == result[1]) { result[1] = {}; break; }
-    }
+        result[i] = Shortcut::fromString(settings.value(bindingKey(i), result[i].toString(QKeySequence::PortableText)).toString());
+    const int translate = int(HotkeyAction::Translate);
+    const bool legacy = settings.value("shortcuts/version", 1).toInt() < bindingsVersion;
+    // preview.7 saved Control+D as the Dictionary default; move it to the current default.
+    const bool movedTranslate = legacy && result[translate] == Shortcut(QKeySequence(primaryModifier() | Qt::Key_D));
+    if (movedTranslate) result[translate] = defaults()[translate];
     // A new default must not overwrite another customized action.
-    for (int added : {3, 4}) if (!settings.contains(QString("shortcuts/%1").arg(added)))
-        for (int i = 0; i < hotkeyActionCount; ++i) if (i != added && result[i] == result[added]) { result[added] = {}; break; }
+    for (const auto added : {HotkeyAction::CopyText, HotkeyAction::Translate}) {
+        const int index = int(added);
+        if (settings.contains(bindingKey(index)) && !(added == HotkeyAction::Translate && movedTranslate)) continue;
+        for (int i = 0; i < hotkeyActionCount; ++i) if (i != index && result[i] == result[index]) { result[index] = {}; break; }
+    }
     return validate(result).isEmpty() ? result : defaults();
 }
 
 void Hotkeys::save(QSettings &settings, const Bindings &bindings)
 {
-    for (int i = 0; i < hotkeyActionCount; ++i) settings.setValue(QString("shortcuts/%1").arg(i), bindings[i].toString(QKeySequence::PortableText));
+    for (int i = 0; i < hotkeyActionCount; ++i) settings.setValue(bindingKey(i), bindings[i].toString(QKeySequence::PortableText));
+    settings.setValue("shortcuts/version", bindingsVersion);
     settings.sync();
 }
 

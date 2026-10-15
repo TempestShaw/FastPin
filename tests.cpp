@@ -270,30 +270,32 @@ private slots:
         reloaded.setValue("shortcuts/0", "Ctrl+K, Ctrl+C"); QCOMPARE(Hotkeys::load(reloaded), Hotkeys::defaults());
     }
 
-    void dictionaryShortcutMigratesLegacyPasteBinding()
+    void dictionaryShortcutAvoidsCommonSystemKeys()
     {
         const auto defaults = Hotkeys::defaults();
-        QCOMPARE(defaults.size(), size_t(5));
+        const auto translate = int(HotkeyAction::Translate);
         const auto control = defaults[0].key[0].keyboardModifiers() & ~Qt::ShiftModifier;
-        const Shortcut dictionary(QKeySequence(QKeyCombination(control, Qt::Key_D)));
-        QCOMPARE(defaults[4], dictionary);
+        const Shortcut legacy(QKeySequence(QKeyCombination(control, Qt::Key_D)));
+        QCOMPARE(defaults[translate], Shortcut(QKeySequence(QKeyCombination(control | Qt::ShiftModifier, Qt::Key_6))));
+        QVERIFY(Hotkeys::validate(defaults).isEmpty());
         QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
-        const Shortcut capture(QKeySequence(QKeyCombination(control, Qt::Key_S)));
-        const Shortcut replay(QKeySequence(QKeyCombination(control, Qt::Key_F)));
-        settings.setValue("shortcuts/0", capture.toString(QKeySequence::PortableText));
-        settings.setValue("shortcuts/1", dictionary.toString(QKeySequence::PortableText));
-        settings.setValue("shortcuts/2", replay.toString(QKeySequence::PortableText));
-        auto loaded = Hotkeys::load(settings);
-        QCOMPARE(loaded[0], capture); QCOMPARE(loaded[2], replay);
-        QCOMPARE(loaded[1], defaults[1]); QCOMPARE(loaded[4], dictionary);
-        Hotkeys::save(settings, loaded); QCOMPARE(Hotkeys::load(settings), loaded);
-        loaded[4] = Shortcut(Qt::ForwardButton, Qt::ShiftModifier);
-        Hotkeys::save(settings, loaded); QCOMPARE(Hotkeys::load(settings), loaded);
+        // preview.7 saved Control+D as the Dictionary default without a settings version.
+        settings.setValue("shortcuts/4", legacy.toString(QKeySequence::PortableText));
+        QCOMPARE(Hotkeys::load(settings)[translate], defaults[translate]);
+        // Once saved, a deliberate Control+D choice is kept.
+        auto chosen = defaults; chosen[translate] = legacy;
+        Hotkeys::save(settings, chosen); QCOMPARE(Hotkeys::load(settings), chosen);
+        // The migrated default must not take a shortcut another action already uses.
         settings.clear();
-        settings.setValue("shortcuts/0", defaults[1].toString(QKeySequence::PortableText));
-        settings.setValue("shortcuts/1", dictionary.toString(QKeySequence::PortableText));
+        settings.setValue("shortcuts/0", defaults[translate].toString(QKeySequence::PortableText));
+        settings.setValue("shortcuts/4", legacy.toString(QKeySequence::PortableText));
+        auto loaded = Hotkeys::load(settings);
+        QCOMPARE(loaded[0], defaults[translate]); QVERIFY(loaded[translate].isEmpty());
+        // A paste shortcut customized to Control+D no longer has to move.
+        settings.clear();
+        settings.setValue("shortcuts/1", legacy.toString(QKeySequence::PortableText));
         loaded = Hotkeys::load(settings);
-        QCOMPARE(loaded[0], defaults[1]); QVERIFY(loaded[1].isEmpty()); QCOMPARE(loaded[4], dictionary);
+        QCOMPARE(loaded[1], legacy); QCOMPARE(loaded[translate], defaults[translate]);
     }
 
     void quickOcrBindingPreservesExistingPreferences()
