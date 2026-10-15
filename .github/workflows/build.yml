@@ -30,6 +30,10 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFASTPIN_VERSION="$version" -DFASTPIN_BUILD_VERSION="${{ github.run_number }}"
       - name: Build
         run: cmake --build build --config Release --parallel
+      - name: Load system fonts for Windows offscreen tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"QT_QPA_FONTDIR=$env:WINDIR/Fonts" >> $env:GITHUB_ENV'
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
       - name: Preserve test diagnostics
