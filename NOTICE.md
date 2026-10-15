@@ -1,6 +1,6 @@
-FastPin is a C++ migration of FastPin.
-Application source and image assets: copyright InterwovenCode / FastPin contributors, MIT license (LICENSE.md).
-Upstream: https://github.com/InterwovenCode/FastPin
+FastPin grew out of the native C++ implementation developed in ScreenPinKit.
+Original ScreenPinKit source and image assets: copyright InterwovenCode / ScreenPinKit contributors, MIT license (LICENSE.md).
+Upstream: https://github.com/InterwovenCode/ScreenPinKit
 
 This application dynamically links Qt Core, Gui and Widgets, and uses Qt platform/image/style plugins.
 Qt: copyright The Qt Company Ltd. and contributors; GNU LGPL version 3.
