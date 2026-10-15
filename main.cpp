@@ -62,12 +62,11 @@ public:
         header->addWidget(title); header->addStretch();
         auto *gettingStarted = new QPushButton("Getting started", this); header->addWidget(gettingStarted);
         connect(gettingStarted, &QPushButton::clicked, this, [this] { showGettingStarted(); }); layout->addLayout(header);
-#ifdef FASTPIN_NATIVE_SETTINGS
-        auto *settingsButton = new QPushButton("Settings…", this); header->addWidget(settingsButton);
-        connect(settingsButton, &QPushButton::clicked, this, [this] { showPreferences(); });
-#endif
         pages = new QTabWidget(this); pages->tabBar()->setElideMode(Qt::ElideNone);
 #ifdef FASTPIN_NATIVE_SETTINGS
+        // Preferences live in the native Settings window; the panel only keeps the workspace page.
+        auto *settingsButton = new QPushButton("Settings…", this); header->addWidget(settingsButton);
+        connect(settingsButton, &QPushButton::clicked, this, [this] { showPreferences(); });
         pages->tabBar()->hide();
 #endif
         pages->setAccessibleName("Control panel pages"); layout->addWidget(pages);
@@ -87,18 +86,16 @@ public:
             for (auto *label : {icon, text, keys}) label->setAttribute(Qt::WA_TransparentForMouseEvents);
             return std::pair{button, keys};
         };
-        auto captureCard = actionCard("capture", "Capture screenshot", "Select a window, element or any region", true);
-        captureKeys = captureCard.second; homeLayout->addWidget(captureCard.first);
-        connect(captureCard.first, &QPushButton::clicked, this, [this] { capture(); });
-        auto pasteCard = actionCard("pin", "Paste as pin", "Keep a clipboard image above your workspace", false);
-        pasteKeys = pasteCard.second; homeLayout->addWidget(pasteCard.first);
-        connect(pasteCard.first, &QPushButton::clicked, this, [this] { paste(); });
-        auto ocrCard = actionCard("ocr", "Copy text from screen", "Select a region to recognize and copy its text", false);
-        ocrKeys = ocrCard.second; homeLayout->addWidget(ocrCard.first);
-        connect(ocrCard.first, &QPushButton::clicked, this, [this] { capture(CaptureOverlay::Mode::CopyText); });
-        auto dictionaryCard = actionCard("translate", "Dictionary / translate", "Select text and release to see its translation", false);
-        translateKeys = dictionaryCard.second; homeLayout->addWidget(dictionaryCard.first);
-        connect(dictionaryCard.first, &QPushButton::clicked, this, [this] { capture(CaptureOverlay::Mode::Translate); });
+        struct CardSpec { HotkeyAction action; const char *icon, *detail; };
+        const CardSpec cards[]{{HotkeyAction::Capture, "capture", "Select a window, element or any region"},
+                               {HotkeyAction::Paste, "pin", "Keep a clipboard image above your workspace"},
+                               {HotkeyAction::CopyText, "ocr", "Select a region to recognize and copy its text"},
+                               {HotkeyAction::Translate, "translate", "Select text and release to see its translation"}};
+        for (const auto &spec : cards) {
+            const auto card = actionCard(spec.icon, hotkeyActionName(int(spec.action)), spec.detail, spec.action == HotkeyAction::Capture);
+            actionKeys[int(spec.action)] = card.second; homeLayout->addWidget(card.first);
+            connect(card.first, &QPushButton::clicked, this, [this, which = spec.action] { trigger(which); });
+        }
         auto *recovery = new QFrame(this); recovery->setObjectName("card");
         auto *recoveryLayout = new QHBoxLayout(recovery); recoveryLayout->setContentsMargins(18, 16, 18, 16); recoveryLayout->setSpacing(16);
         preview = new QLabel(this); preview->setFixedSize(112, 70); preview->setAlignment(Qt::AlignCenter);
@@ -106,7 +103,8 @@ public:
         auto *recoveryText = new QVBoxLayout;
         recoveryText->addWidget(new QLabel("<b>Pick up where you left off</b>", this));
         historyDetail = new QLabel(this); historyDetail->setObjectName("muted"); historyDetail->setWordWrap(true); recoveryText->addWidget(historyDetail);
-        replayKeys = new QLabel(this); replayKeys->setObjectName("muted"); recoveryText->addWidget(replayKeys);
+        auto *replayKeys = new QLabel(this); replayKeys->setObjectName("muted"); recoveryText->addWidget(replayKeys);
+        actionKeys[int(HotkeyAction::Replay)] = replayKeys;
         recoveryLayout->addLayout(recoveryText, 1);
         replayButton = new QPushButton("Restore pin", this); replayButton->setObjectName("replayButton");
         connect(replayButton, &QPushButton::clicked, this, [this] { replay(); }); recoveryLayout->addWidget(replayButton);
@@ -118,55 +116,7 @@ public:
 
         history.enabled = settings.value("recovery/enabled", true).toBool();
 #ifndef FASTPIN_NATIVE_SETTINGS
-        auto *preferences = new QWidget(this); auto *preferencesLayout = new QVBoxLayout(preferences);
-        preferencesLayout->setContentsMargins(0, 18, 0, 0); preferencesLayout->setSpacing(12); pages->addTab(preferences, "Preferences");
-        preferencesLayout->addWidget(new QLabel("<span style='font-size:17px; font-weight:600'>Make it yours</span>", this));
-        auto *hint = new QLabel("Click a field, then press a shortcut (Ctrl+A, Shift+A, F1–F20) or Mouse4 / Mouse5.\nHold both side buttons for a combo; release to finish. Clear a field to disable its shortcut.", this);
-#ifdef Q_OS_MACOS
-        hint->setToolTip("If the top row controls brightness or volume, hold Fn while pressing F1–F20.");
-#endif
-        hint->setObjectName("muted"); hint->setWordWrap(true); preferencesLayout->addWidget(hint);
-        auto *shortcutCard = new QFrame(this); shortcutCard->setObjectName("card");
-        auto *shortcutLayout = new QVBoxLayout(shortcutCard); shortcutLayout->setContentsMargins(18, 12, 18, 12);
-        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen", "Dictionary / translate"};
-        for (int i = 0; i < 5; ++i) {
-            auto *row = new QHBoxLayout;
-            row->addWidget(new QLabel(names[i], this), 1);
-            edits[i] = new ShortcutEdit(this);
-            edits[i]->setAccessibleName(names[i] + " shortcut"); edits[i]->setFixedWidth(218); row->addWidget(edits[i]); shortcutLayout->addLayout(row);
-        }
-        preferencesLayout->addWidget(shortcutCard);
-        auto *buttons = new QHBoxLayout;
-        auto *defaults = new QPushButton("Reset to defaults", this); buttons->addWidget(defaults); buttons->addStretch();
-        auto *apply = new QPushButton("Apply shortcuts", this); apply->setObjectName("applyShortcuts"); buttons->addWidget(apply); preferencesLayout->addLayout(buttons);
-        connect(defaults, &QPushButton::clicked, this, [this] {
-            const auto bindings = Hotkeys::defaults(); for (int i = 0; i < 5; ++i) edits[i]->setBinding(bindings[i]);
-            settingsFeedback->setText("Defaults selected. Apply to activate them.");
-        });
-        connect(apply, &QPushButton::clicked, this, [this] {
-            Hotkeys::Bindings bindings; for (int i = 0; i < 5; ++i) bindings[i] = edits[i]->binding();
-            for (auto *edit : edits) edit->clearFocus();
-            refreshShortcutRecording();
-            const QString error = hotkeys.apply(bindings);
-            if (!error.isEmpty()) { settingsFeedback->setText(error); return; }
-            Hotkeys::save(settings, bindings); refreshShortcuts();
-            settingsFeedback->setText(settings.status() == QSettings::NoError ? "Saved. Your shortcuts are active." :
-                                     "Active for this session, but settings could not be saved to disk.");
-        });
-        settingsFeedback = new QLabel(this); settingsFeedback->setObjectName("muted"); settingsFeedback->setWordWrap(true); preferencesLayout->addWidget(settingsFeedback);
-        remember = new QCheckBox("Remember the last image after closing or restarting", this);
-        remember->setChecked(history.enabled); preferencesLayout->addWidget(remember);
-        auto *privacy = new QLabel("One image is stored on this computer, including its annotations.\nTurning this off also deletes the saved image.", this);
-        privacy->setObjectName("muted"); preferencesLayout->addWidget(privacy);
-        auto *clear = new QPushButton("Clear saved image", this); preferencesLayout->addWidget(clear, 0, Qt::AlignLeft);
-        connect(clear, &QPushButton::clicked, this, [this] {
-            replayPending = false; if (history.clear()) status->setText("Saved image cleared.");
-        });
-        connect(remember, &QCheckBox::toggled, this, [this](bool enabled) {
-            history.enabled = enabled; settings.setValue("recovery/enabled", enabled); settings.sync();
-            if (!enabled) { replayPending = false; history.clear(); } refreshHistory();
-        });
-        preferencesLayout->addStretch();
+        buildPreferencesPage();
 #endif
         auto *footer = new QHBoxLayout;
         status = new QLabel("Ready · Close the panel to keep using the global shortcuts.", this);
@@ -174,11 +124,8 @@ public:
         auto *hideButton = new QPushButton("Hide panel", this); connect(hideButton, &QPushButton::clicked, this, &QWidget::hide); footer->addWidget(hideButton); layout->addLayout(footer);
 
         auto *menu = new QMenu(this);
-        snipAction = menu->addAction("Capture screenshot", this, [this] { capture(); });
-        pasteAction = menu->addAction("Paste as pin", this, [this] { paste(); });
-        replayAction = menu->addAction("Restore last image", this, [this] { replay(); });
-        ocrAction = menu->addAction("Copy text from screen", this, [this] { capture(CaptureOverlay::Mode::CopyText); });
-        translateAction = menu->addAction("Dictionary / translate", this, [this] { capture(CaptureOverlay::Mode::Translate); });
+        for (int i = 0; i < hotkeyActionCount; ++i)
+            actions[i] = menu->addAction(hotkeyActionName(i), this, [this, i] { trigger(HotkeyAction(i)); });
         menu->addSeparator();
         menu->addAction("Restore mouse input for all pins", this, [this] { restorePins(); });
         menu->addAction("Show controls…", this, [this] { pages->setCurrentIndex(0); show(); raise(); activateWindow(); });
@@ -189,11 +136,7 @@ public:
 #endif
         menu->addAction("Getting started…", this, [this] { showGettingStarted(); });
         menu->addSeparator();
-#ifdef FASTPIN_NATIVE_SETTINGS
-        menu->addAction("Quit", this, [this] { nativeSettings->quit(); });
-#else
-        menu->addAction("Quit", qApp, &QApplication::quit);
-#endif
+        menu->addAction("Quit", this, [this] { quitApplication(); });
         tray.setContextMenu(menu);
         auto trayIcon = QIcon(":/brand/app-icon.png");
 #ifdef Q_OS_MACOS
@@ -203,31 +146,24 @@ public:
 #ifndef Q_OS_MACOS
         connect(&tray, &QSystemTrayIcon::activated, this, [this](auto reason) { if (reason == QSystemTrayIcon::Trigger) show(); });
 #endif
-        connect(&hotkeys, &Hotkeys::capture, this, [this] { capture(); });
-        connect(&hotkeys, &Hotkeys::paste, this, [this] { paste(); });
-        connect(&hotkeys, &Hotkeys::replay, this, [this] { replay(); });
-        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { capture(CaptureOverlay::Mode::CopyText); });
-        connect(&hotkeys, &Hotkeys::quickTranslate, this, [this] { capture(CaptureOverlay::Mode::Translate); });
+        connect(&hotkeys, &Hotkeys::capture, this, [this] { trigger(HotkeyAction::Capture); });
+        connect(&hotkeys, &Hotkeys::paste, this, [this] { trigger(HotkeyAction::Paste); });
+        connect(&hotkeys, &Hotkeys::replay, this, [this] { trigger(HotkeyAction::Replay); });
+        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { trigger(HotkeyAction::CopyText); });
+        connect(&hotkeys, &Hotkeys::quickTranslate, this, [this] { trigger(HotkeyAction::Translate); });
         connect(&history, &CaptureHistory::changed, this, [this](QString error) {
             if (isVisible()) refreshHistory();
-            replayAction->setEnabled(history.available() || history.busy());
+            action(HotkeyAction::Replay)->setEnabled(history.available() || history.busy());
             if (!error.isEmpty()) { replayPending = false; status->setText("Recovery: " + error); }
             else if (replayPending && !history.busy()) { replayPending = false; replay(); }
         });
         connect(pages, &QTabWidget::currentChanged, this, [this] { refreshHistory(); });
 #ifdef FASTPIN_NATIVE_SETTINGS
-        nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
-            [this] { refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); });
-        applicationMenuBar = std::make_unique<QMenuBar>();
-        auto *applicationMenu = applicationMenuBar->addMenu("FastPin");
-        applicationMenu->addAction("About FastPin", this, [this] { nativeSettings->show(MacSettings::About); })->setMenuRole(QAction::AboutRole);
-        applicationMenu->addAction("Settings…", this, [this] { showPreferences(); })->setMenuRole(QAction::PreferencesRole);
-        applicationMenu->addAction("Check for Updates…", this, [this] { nativeSettings->checkForUpdates(); })->setMenuRole(QAction::ApplicationSpecificRole);
-        applicationMenu->addAction("Quit FastPin", this, [this] { nativeSettings->quit(); })->setMenuRole(QAction::QuitRole);
+        setupNativeSettings();
 #endif
         const auto bindings = Hotkeys::load(settings);
         const QString error = hotkeys.apply(bindings);
-        for (int i = 0; i < 5; ++i) if (edits[i]) edits[i]->setBinding(bindings[i]);
+        for (int i = 0; i < hotkeyActionCount; ++i) if (edits[i]) edits[i]->setBinding(bindings[i]);
         if (!error.isEmpty()) { setSettingsFeedback(error); status->setText("A shortcut is unavailable. Change it in Settings."); }
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
@@ -288,6 +224,96 @@ protected:
 
 private:
     friend class ControllerTests;
+#ifndef FASTPIN_NATIVE_SETTINGS
+    void buildPreferencesPage()
+    {
+        auto *preferences = new QWidget(this); auto *preferencesLayout = new QVBoxLayout(preferences);
+        preferencesLayout->setContentsMargins(0, 18, 0, 0); preferencesLayout->setSpacing(12); pages->addTab(preferences, "Preferences");
+        preferencesLayout->addWidget(new QLabel("<span style='font-size:17px; font-weight:600'>Make it yours</span>", this));
+        auto *hint = new QLabel("Click a field, then press a shortcut (Ctrl+A, Shift+A, F1–F20) or Mouse4 / Mouse5.\nHold both side buttons for a combo; release to finish. Clear a field to disable its shortcut.", this);
+#ifdef Q_OS_MACOS
+        hint->setToolTip("If the top row controls brightness or volume, hold Fn while pressing F1–F20.");
+#endif
+        hint->setObjectName("muted"); hint->setWordWrap(true); preferencesLayout->addWidget(hint);
+        auto *shortcutCard = new QFrame(this); shortcutCard->setObjectName("card");
+        auto *shortcutLayout = new QVBoxLayout(shortcutCard); shortcutLayout->setContentsMargins(18, 12, 18, 12);
+        for (int i = 0; i < hotkeyActionCount; ++i) {
+            auto *row = new QHBoxLayout;
+            row->addWidget(new QLabel(hotkeyActionName(i), this), 1);
+            edits[i] = new ShortcutEdit(this);
+            edits[i]->setAccessibleName(hotkeyActionName(i) + " shortcut"); edits[i]->setFixedWidth(218); row->addWidget(edits[i]); shortcutLayout->addLayout(row);
+        }
+        preferencesLayout->addWidget(shortcutCard);
+        auto *buttons = new QHBoxLayout;
+        auto *defaults = new QPushButton("Reset to defaults", this); buttons->addWidget(defaults); buttons->addStretch();
+        auto *apply = new QPushButton("Apply shortcuts", this); apply->setObjectName("applyShortcuts"); buttons->addWidget(apply); preferencesLayout->addLayout(buttons);
+        connect(defaults, &QPushButton::clicked, this, [this] {
+            const auto bindings = Hotkeys::defaults(); for (int i = 0; i < hotkeyActionCount; ++i) edits[i]->setBinding(bindings[i]);
+            settingsFeedback->setText("Defaults selected. Apply to activate them.");
+        });
+        connect(apply, &QPushButton::clicked, this, [this] {
+            Hotkeys::Bindings bindings; for (int i = 0; i < hotkeyActionCount; ++i) bindings[i] = edits[i]->binding();
+            for (auto *edit : edits) edit->clearFocus();
+            refreshShortcutRecording();
+            const QString error = hotkeys.apply(bindings);
+            if (!error.isEmpty()) { settingsFeedback->setText(error); return; }
+            Hotkeys::save(settings, bindings); refreshShortcuts();
+            settingsFeedback->setText(settings.status() == QSettings::NoError ? "Saved. Your shortcuts are active." :
+                                     "Active for this session, but settings could not be saved to disk.");
+        });
+        settingsFeedback = new QLabel(this); settingsFeedback->setObjectName("muted"); settingsFeedback->setWordWrap(true); preferencesLayout->addWidget(settingsFeedback);
+        remember = new QCheckBox("Remember the last image after closing or restarting", this);
+        remember->setChecked(history.enabled); preferencesLayout->addWidget(remember);
+        auto *privacy = new QLabel("One image is stored on this computer, including its annotations.\nTurning this off also deletes the saved image.", this);
+        privacy->setObjectName("muted"); preferencesLayout->addWidget(privacy);
+        auto *clear = new QPushButton("Clear saved image", this); preferencesLayout->addWidget(clear, 0, Qt::AlignLeft);
+        connect(clear, &QPushButton::clicked, this, [this] {
+            replayPending = false; if (history.clear()) status->setText("Saved image cleared.");
+        });
+        connect(remember, &QCheckBox::toggled, this, [this](bool enabled) {
+            history.enabled = enabled; settings.setValue("recovery/enabled", enabled); settings.sync();
+            if (!enabled) { replayPending = false; history.clear(); } refreshHistory();
+        });
+        preferencesLayout->addStretch();
+    }
+#endif
+
+#ifdef FASTPIN_NATIVE_SETTINGS
+    void setupNativeSettings()
+    {
+        nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
+            [this] { refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); });
+        applicationMenuBar = std::make_unique<QMenuBar>();
+        auto *applicationMenu = applicationMenuBar->addMenu("FastPin");
+        applicationMenu->addAction("About FastPin", this, [this] { nativeSettings->show(MacSettings::About); })->setMenuRole(QAction::AboutRole);
+        applicationMenu->addAction("Settings…", this, [this] { showPreferences(); })->setMenuRole(QAction::PreferencesRole);
+        applicationMenu->addAction("Check for Updates…", this, [this] { nativeSettings->checkForUpdates(); })->setMenuRole(QAction::ApplicationSpecificRole);
+        applicationMenu->addAction("Quit FastPin", this, [this] { quitApplication(); })->setMenuRole(QAction::QuitRole);
+    }
+#endif
+
+    void quitApplication()
+    {
+#ifdef FASTPIN_NATIVE_SETTINGS
+        nativeSettings->quit(); // Lets Sparkle install a pending update on quit.
+#else
+        QApplication::quit();
+#endif
+    }
+
+    void trigger(HotkeyAction requested)
+    {
+        switch (requested) {
+        case HotkeyAction::Capture: capture(); break;
+        case HotkeyAction::Paste: paste(); break;
+        case HotkeyAction::Replay: replay(); break;
+        case HotkeyAction::CopyText: capture(CaptureOverlay::Mode::CopyText); break;
+        case HotkeyAction::Translate: capture(CaptureOverlay::Mode::Translate); break;
+        }
+    }
+
+    QAction *action(HotkeyAction which) const { return actions[int(which)]; }
+
     void reportStatus(const QString &message, QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information)
     {
         status->setText(message);
@@ -318,17 +344,11 @@ private:
     void refreshShortcuts()
     {
         const auto &bindings = hotkeys.bindings();
-        const std::array<QAction *, 5> actions{snipAction, pasteAction, replayAction, ocrAction, translateAction};
-        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen", "Dictionary / translate"};
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < hotkeyActionCount; ++i) {
             actions[i]->setShortcut(bindings[i].key);
-            actions[i]->setText(names[i] + (bindings[i].buttons ? " · " + bindings[i].toString() : QString()));
+            actions[i]->setText(hotkeyActionName(i) + (bindings[i].buttons ? " · " + bindings[i].toString() : QString()));
+            actionKeys[i]->setText(bindings[i].toString(QKeySequence::NativeText));
         }
-        captureKeys->setText(bindings[0].toString(QKeySequence::NativeText));
-        pasteKeys->setText(bindings[1].toString(QKeySequence::NativeText));
-        replayKeys->setText(bindings[2].toString(QKeySequence::NativeText));
-        ocrKeys->setText(bindings[3].toString(QKeySequence::NativeText));
-        translateKeys->setText(bindings[4].toString(QKeySequence::NativeText));
     }
 
     void refreshHistory()
@@ -338,7 +358,7 @@ private:
         if (image.isNull()) { preview->setPixmap({}); preview->setText("No saved image"); }
         else { preview->setText({}); preview->setPixmap(QPixmap::fromImage(image).scaled(preview->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation)); }
         replayButton->setEnabled(history.available() || (history.enabled && history.busy()));
-        replayAction->setEnabled(replayButton->isEnabled());
+        action(HotkeyAction::Replay)->setEnabled(replayButton->isEnabled());
     }
 
     void replay()
@@ -354,7 +374,7 @@ private:
     void pin(QImage image, QPoint position, qreal zoom = 1)
     {
         history.remember(image, position, zoom);
-        replayAction->setEnabled(history.enabled);
+        action(HotkeyAction::Replay)->setEnabled(history.enabled);
         auto *window = new PinWindow(std::move(image));
         window->setZoom(zoom);
         const auto *screen = QGuiApplication::screenAt(position);
@@ -477,7 +497,7 @@ private:
                 connect(overlay, &CaptureOverlay::canceled, this, [this] { finishCapture(); });
                 connect(overlay, &CaptureOverlay::accepted, this, [this](QImage image, QPoint pos, bool copyOnly) {
                     finishCapture();
-                    if (copyOnly) { history.remember(image, pos); replayAction->setEnabled(history.enabled); QApplication::clipboard()->setImage(image); }
+                    if (copyOnly) { history.remember(image, pos); action(HotkeyAction::Replay)->setEnabled(history.enabled); QApplication::clipboard()->setImage(image); }
                     else pin(std::move(image), pos);
                 });
                 connect(overlay, &CaptureOverlay::ocrRequested, this, [this](QImage image) {
@@ -518,11 +538,12 @@ private:
 #endif
     QTabWidget *pages;
     QPointer<Onboarding> welcome;
-    std::array<ShortcutEdit *, 5> edits{};
-    QLabel *status, *settingsFeedback = nullptr, *preview, *historyDetail, *captureKeys, *pasteKeys, *replayKeys, *ocrKeys, *translateKeys;
+    std::array<ShortcutEdit *, hotkeyActionCount> edits{};
+    std::array<QAction *, hotkeyActionCount> actions{};
+    std::array<QLabel *, hotkeyActionCount> actionKeys{};
+    QLabel *status, *settingsFeedback = nullptr, *preview, *historyDetail;
     QPushButton *replayButton;
     QCheckBox *remember;
-    QAction *snipAction, *pasteAction, *replayAction, *ocrAction, *translateAction;
     bool replayPending = false;
     bool shortcutsRecording = false;
     QList<PinWindow *> pins;
