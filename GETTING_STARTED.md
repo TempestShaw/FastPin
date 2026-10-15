@@ -26,7 +26,7 @@ Launch FastPin from Start. Keep the extracted folder in place while installed. O
 
 1. Choose Capture screenshot from the menu bar/tray, or press Ctrl+Shift+2. Drag to select a region. Tab switches between Window and Element detection; click a detected target to select it.
 2. Use the floating toolbar: P for pen, A for arrow, R for rectangle, T for text. With T selected, click the image and type. Enter finishes text, Shift+Enter adds a line, and Escape cancels text. Undo/redo uses your platform's usual shortcuts.
-3. Press Enter to pin the selected image. Its tools start hidden. Drag the pin to move it; use the wheel to zoom. Hover over the image and press Space to show its tools; press Space again to hide them. Escape closes it.
+3. Press Space or Enter to pin the selected image. Its tools start hidden. Drag the pin to move it; use the wheel to zoom. Hover over the image and press Space to show its tools; press Space again to hide them. Escape closes it.
 
 Choose Restore last image, or press Ctrl+Shift+4, to bring back the most recent capture/pin with its annotations. Paste as pin / Ctrl+Shift+3 pins an image from the clipboard.
 

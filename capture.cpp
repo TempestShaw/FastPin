@@ -325,7 +325,7 @@ void CaptureOverlay::paintEvent(QPaintEvent *)
     p.drawText(help.adjusted(8, 0, 0, 0), Qt::AlignVCenter,
                QString("%1  [Tab] · %2 · Esc to cancel%3")
                    .arg(elementMode ? "Element" : "Window",
-                        quickOcr ? "Select to copy text" : "Drag to select · Enter to pin",
+                        quickOcr ? "Select to copy text" : "Drag to select · Space or Enter to pin",
                         detectionHint.isEmpty() ? QString() : "\n" + detectionHint));
 }
 
@@ -396,6 +396,7 @@ void CaptureOverlay::keyPressEvent(QKeyEvent *e)
     if (e->key() == Qt::Key_Escape) emit canceled();
     else if (e->matches(QKeySequence::Copy)) accept(true);
     else if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter) accept(false);
+    else if (e->key() == Qt::Key_Space && e->modifiers() == Qt::NoModifier && !e->isAutoRepeat() && !textEditor->isVisible()) accept(false);
     else if (e->matches(QKeySequence::Save)) save();
     else if (e->matches(QKeySequence::Undo)) { annotations.undo(); toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update(selection.rect.toAlignedRect()); }
     else if (e->matches(QKeySequence::Redo)) { annotations.redo(); toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update(selection.rect.toAlignedRect()); }

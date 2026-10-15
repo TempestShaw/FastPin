@@ -423,6 +423,10 @@ private slots:
         QVERIFY(editor->isVisible()); QVERIFY(!editor->isWindow());
         QVERIFY(overlay.selection.rect.contains(editor->geometry()));
         editor->setPlainText(QString::fromUtf8("直接輸入\nSecond line"));
+        editor->moveCursor(QTextCursor::End);
+        QTest::keyClick(editor, Qt::Key_Space);
+        QCOMPARE(editor->toPlainText(), QString::fromUtf8("直接輸入\nSecond line "));
+        QCOMPARE(accepted.size(), 0);
         QTest::keyClick(editor, Qt::Key_Return);
         QCOMPARE(accepted.size(), 0); QCOMPARE(canceled.size(), 0);
         const auto annotated = overlay.selectedImage();
@@ -512,10 +516,18 @@ private slots:
         QCOMPARE(crop.pixelColor(40, 30), QColor("#182838"));
         QCOMPARE(frame.image.constBits(), original);
         QVERIFY(!accepted[0][2].toBool());
-        QTest::keySequence(&overlay, QKeySequence(QKeySequence::Copy));
+        QTest::keyClick(&overlay, Qt::Key_Space, Qt::ShiftModifier);
+        QKeyEvent repeat(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier, " ", true);
+        QApplication::sendEvent(&overlay, &repeat);
+        QCOMPARE(accepted.size(), 1);
+        QTest::keyClick(&overlay, Qt::Key_Space);
         QCOMPARE(accepted.size(), 2);
-        QVERIFY(accepted[1][2].toBool());
+        QVERIFY(!accepted[1][2].toBool());
         QCOMPARE(qvariant_cast<QImage>(accepted[1][0]), crop);
+        QTest::keySequence(&overlay, QKeySequence(QKeySequence::Copy));
+        QCOMPARE(accepted.size(), 3);
+        QVERIFY(accepted[2][2].toBool());
+        QCOMPARE(qvariant_cast<QImage>(accepted[2][0]), crop);
     }
 
     void toolbarAnnotationsKeepRetinaCropAndHistory()
