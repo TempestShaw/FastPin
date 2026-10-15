@@ -59,8 +59,8 @@ To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The r
 
 | Platform | Download | Requirements |
 | --- | --- | --- |
-| macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.8/FastPin-macOS.dmg) | macOS 14 or newer |
-| Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.8/FastPin-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
+| macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.9/FastPin-macOS.dmg) | macOS 14 or newer |
+| Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.9/FastPin-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
 
 **macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection, mouse shortcuts and double-tap Control also use Accessibility permission. This preview is not notarized. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
 
