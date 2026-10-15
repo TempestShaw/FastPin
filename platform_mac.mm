@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "translation.h"
 
 #include <QScreen>
 #include <QWidget>
@@ -8,14 +9,12 @@
 #import <Vision/Vision.h>
 #import <AVFoundation/AVFoundation.h>
 #import <QuartzCore/QuartzCore.h>
-#include <QRegularExpression>
 
 std::function<void()> pronounceText(const QString &text)
 {
     auto *speech = [[AVSpeechSynthesizer alloc] init];
     auto *utterance = [AVSpeechUtterance speechUtteranceWithString:text.toNSString()];
-    const bool chinese = text.contains(QRegularExpression("[\\x{3400}-\\x{9fff}]"));
-    utterance.voice = [AVSpeechSynthesisVoice voiceWithLanguage:chinese ? @"zh-TW" : @"en-US"];
+    utterance.voice = [AVSpeechSynthesisVoice voiceWithLanguage:containsHan(text) ? @"zh-TW" : @"en-US"];
     [speech speakUtterance:utterance];
     return [speech] { [speech stopSpeakingAtBoundary:AVSpeechBoundaryImmediate]; };
 }

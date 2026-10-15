@@ -7,6 +7,13 @@
 #include <QJsonObject>
 #include <QTextDocumentFragment>
 
+bool containsHan(const QString &text)
+{
+    // CJK Unified Ideographs, Extension A, and the supplementary-plane extensions.
+    static const QRegularExpression han("[\\x{3400}-\\x{4dbf}\\x{4e00}-\\x{9fff}\\x{20000}-\\x{3134f}]");
+    return text.contains(han);
+}
+
 static QString dictionaryKey(const QString &text)
 {
     QString key = text.simplified().toCaseFolded();
@@ -36,8 +43,7 @@ QString offlineDefinition(const QString &text)
         else if (order > 0) high = start;
         else {
             static const QRegularExpression pronunciation("\\s*\\[[^\\]]*\\]");
-            static const QRegularExpression chinese("[\\x{3400}-\\x{9fff}]");
-            const bool chineseEntry = QString::fromUtf8(key).contains(chinese);
+            const bool chineseEntry = containsHan(QString::fromUtf8(key));
             auto lines = QString::fromUtf8(data.constData() + tab + 1, end - tab - 1).split("\\n");
             for (auto &line : lines) {
                 line.remove(pronunciation);
@@ -53,17 +59,15 @@ QString offlineDefinition(const QString &text)
 bool isDictionaryWord(const QString &text)
 {
     static const QRegularExpression word("^[\\p{L}\\p{M}]+(?:['’-][\\p{L}\\p{M}]+)*$");
-    static const QRegularExpression chinese("[\\x{3400}-\\x{9fff}]");
     const auto key = dictionaryKey(text);
-    return key.size() <= (key.contains(chinese) ? 4 : 64) && word.match(key).hasMatch();
+    return key.size() <= (containsHan(key) ? 4 : 64) && word.match(key).hasMatch();
 }
 
 QUrl onlineTranslationUrl(const QString &text)
 {
-    static const QRegularExpression chinese("[\\x{3400}-\\x{9fff}]");
     QUrl url("https://api.mymemory.translated.net/get");
     QUrlQuery query;
-    query.addQueryItem("langpair", text.contains(chinese) ? "zh-TW|en" : "en|zh-TW");
+    query.addQueryItem("langpair", containsHan(text) ? "zh-TW|en" : "en|zh-TW");
     query.addQueryItem("q", text);
     url.setQuery(query);
     return url;
