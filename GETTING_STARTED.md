@@ -30,6 +30,12 @@ Launch FastPin from Start. Keep the extracted folder in place while installed. O
 
 Choose Restore last image, or press Ctrl+Shift+4, to bring back the most recent capture/pin with its annotations. Paste as pin / Ctrl+Shift+3 pins an image from the clipboard.
 
+## Copy text from your screen
+
+Press **Ctrl+Shift+5**, or choose **Copy text from screen** in the panel or menu bar/tray. Drag around the text and release the mouse: FastPin recognizes it and copies it to your clipboard. Paste into any app. You can also click a detected window, or press Tab to switch to Element detection.
+
+Press Escape to cancel. If no text is found, your clipboard is kept. Change the OCR shortcut in Preferences, including mouse side-button combinations.
+
 ## More useful controls
 
 | Task | Control |
@@ -43,7 +49,7 @@ Choose Restore last image, or press Ctrl+Shift+4, to bring back the most recent 
 | Reset a pin's zoom | 0 |
 | Restore mouse input for click-through pins | Menu bar/tray → Restore mouse input for all pins |
 
-Change capture, paste, and restore bindings in Preferences. Click a shortcut field, press a key combination or side-button gesture, release it, then choose Apply shortcuts. Clear a field to disable that shortcut.
+Change capture, paste, restore, and OCR bindings in Preferences. Click a shortcut field, press a key combination or side-button gesture, release it, then choose Apply shortcuts. Clear a field to disable that shortcut.
 
 Close or hide the control panel to leave FastPin in the menu bar/tray. Quit from its menu when finished.
 

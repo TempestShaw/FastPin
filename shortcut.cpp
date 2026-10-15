@@ -36,7 +36,7 @@ Shortcut Shortcut::fromString(const QString &text)
 }
 
 MouseGesture::Result MouseGesture::event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods,
-                                       const std::array<Shortcut, 3> &bindings)
+                                       const std::array<Shortcut, 4> &bindings)
 {
     if (!(button & sideButtons)) return {};
     if (down) {
@@ -53,7 +53,7 @@ MouseGesture::Result MouseGesture::event(Qt::MouseButton button, bool down, Qt::
     Result result{owned};
     if (held) return result;
     if (owned) {
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < 4; ++i)
             if (bindings[i].buttons == seen && bindings[i].modifiers == modifiers) { result.action = i; break; }
         if (result.action < 0) { result.replay = seen; result.modifiers = modifiers; }
     }

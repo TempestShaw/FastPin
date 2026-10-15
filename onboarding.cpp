@@ -94,8 +94,8 @@ Onboarding::Onboarding(QSettings &storage, const Hotkeys::Bindings &bindings, QW
 #endif
     permissions->addStretch();
     auto *shortcuts = page("03 / MAKE IT YOURS", "One shortcut away.", "These are your current shortcuts. Change them any time in Preferences, including mouse side buttons.");
-    const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image"};
-    for (int i = 0; i < 3; ++i) {
+    const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen"};
+    for (int i = 0; i < 4; ++i) {
         auto *row = new QHBoxLayout; row->addWidget(new QLabel(names[i], this), 1);
         auto *key = new QLabel(bindings[i].isEmpty() ? "Disabled" : bindings[i].toString(QKeySequence::NativeText), this);
         key->setObjectName("binding"); row->addWidget(key); shortcuts->addLayout(row);

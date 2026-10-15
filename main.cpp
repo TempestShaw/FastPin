@@ -79,6 +79,9 @@ public:
         auto pasteCard = actionCard("pin", "Paste as pin", "Keep a clipboard image above your workspace", false);
         pasteKeys = pasteCard.second; homeLayout->addWidget(pasteCard.first);
         connect(pasteCard.first, &QPushButton::clicked, this, [this] { paste(); });
+        auto ocrCard = actionCard("ocr", "Copy text from screen", "Select a region to recognize and copy its text", false);
+        ocrKeys = ocrCard.second; homeLayout->addWidget(ocrCard.first);
+        connect(ocrCard.first, &QPushButton::clicked, this, [this] { capture(true); });
         auto *recovery = new QFrame(this); recovery->setObjectName("card");
         auto *recoveryLayout = new QHBoxLayout(recovery); recoveryLayout->setContentsMargins(18, 16, 18, 16); recoveryLayout->setSpacing(16);
         preview = new QLabel(this); preview->setFixedSize(112, 70); preview->setAlignment(Qt::AlignCenter);
@@ -106,8 +109,8 @@ public:
         hint->setObjectName("muted"); hint->setWordWrap(true); preferencesLayout->addWidget(hint);
         auto *shortcutCard = new QFrame(this); shortcutCard->setObjectName("card");
         auto *shortcutLayout = new QVBoxLayout(shortcutCard); shortcutLayout->setContentsMargins(18, 12, 18, 12);
-        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image"};
-        for (int i = 0; i < 3; ++i) {
+        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen"};
+        for (int i = 0; i < 4; ++i) {
             auto *row = new QHBoxLayout;
             row->addWidget(new QLabel(names[i], this), 1);
             edits[i] = new ShortcutEdit(this);
@@ -118,11 +121,11 @@ public:
         auto *defaults = new QPushButton("Reset to defaults", this); buttons->addWidget(defaults); buttons->addStretch();
         auto *apply = new QPushButton("Apply shortcuts", this); apply->setObjectName("applyShortcuts"); buttons->addWidget(apply); preferencesLayout->addLayout(buttons);
         connect(defaults, &QPushButton::clicked, this, [this] {
-            const auto bindings = Hotkeys::defaults(); for (int i = 0; i < 3; ++i) edits[i]->setBinding(bindings[i]);
+            const auto bindings = Hotkeys::defaults(); for (int i = 0; i < 4; ++i) edits[i]->setBinding(bindings[i]);
             settingsFeedback->setText("Defaults selected. Apply to activate them.");
         });
         connect(apply, &QPushButton::clicked, this, [this] {
-            Hotkeys::Bindings bindings; for (int i = 0; i < 3; ++i) bindings[i] = edits[i]->binding();
+            Hotkeys::Bindings bindings; for (int i = 0; i < 4; ++i) bindings[i] = edits[i]->binding();
             for (auto *edit : edits) edit->clearFocus();
             refreshShortcutRecording();
             const QString error = hotkeys.apply(bindings);
@@ -154,6 +157,7 @@ public:
         snipAction = menu->addAction("Capture screenshot", this, [this] { capture(); });
         pasteAction = menu->addAction("Paste as pin", this, [this] { paste(); });
         replayAction = menu->addAction("Restore last image", this, [this] { replay(); });
+        ocrAction = menu->addAction("Copy text from screen", this, [this] { capture(true); });
         menu->addSeparator();
         menu->addAction("Restore mouse input for all pins", this, [this] { restorePins(); });
         menu->addAction("Show controls…", this, [this] { pages->setCurrentIndex(0); show(); raise(); activateWindow(); });
@@ -170,6 +174,7 @@ public:
         connect(&hotkeys, &Hotkeys::capture, this, [this] { capture(); });
         connect(&hotkeys, &Hotkeys::paste, this, [this] { paste(); });
         connect(&hotkeys, &Hotkeys::replay, this, [this] { replay(); });
+        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { capture(true); });
         connect(&history, &CaptureHistory::changed, this, [this](QString error) {
             if (isVisible()) refreshHistory();
             replayAction->setEnabled(history.available() || history.busy());
@@ -179,7 +184,7 @@ public:
         connect(pages, &QTabWidget::currentChanged, this, [this] { refreshHistory(); });
         const auto bindings = Hotkeys::load(settings);
         const QString error = hotkeys.apply(bindings);
-        for (int i = 0; i < 3; ++i) edits[i]->setBinding(bindings[i]);
+        for (int i = 0; i < 4; ++i) edits[i]->setBinding(bindings[i]);
         if (!error.isEmpty()) { settingsFeedback->setText(error); status->setText("A shortcut is unavailable. Change it in Preferences."); }
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
@@ -245,15 +250,16 @@ private:
     void refreshShortcuts()
     {
         const auto &bindings = hotkeys.bindings();
-        const std::array<QAction *, 3> actions{snipAction, pasteAction, replayAction};
-        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image"};
-        for (int i = 0; i < 3; ++i) {
+        const std::array<QAction *, 4> actions{snipAction, pasteAction, replayAction, ocrAction};
+        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen"};
+        for (int i = 0; i < 4; ++i) {
             actions[i]->setShortcut(bindings[i].key);
             actions[i]->setText(names[i] + (bindings[i].buttons ? " · " + bindings[i].toString() : QString()));
         }
         captureKeys->setText(bindings[0].toString(QKeySequence::NativeText));
         pasteKeys->setText(bindings[1].toString(QKeySequence::NativeText));
         replayKeys->setText(bindings[2].toString(QKeySequence::NativeText));
+        ocrKeys->setText(bindings[3].toString(QKeySequence::NativeText));
     }
 
     void refreshHistory()
@@ -312,7 +318,7 @@ private:
         status->setText("Mouse input restored for all pins.");
     }
 
-    void ocr(QImage image)
+    void ocr(QImage image, bool quick = false)
     {
         if (ocrBusy) { status->setText("OCR is already running."); show(); return; }
         ocrBusy = true;
@@ -321,7 +327,7 @@ private:
         const auto executable = QCoreApplication::applicationFilePath();
         auto *worker = QThread::create([image = std::move(image), executable, result] { *result = recognizeTextInWorker(image, executable); });
         connect(worker, &QThread::finished, worker, &QObject::deleteLater);
-        connect(worker, &QThread::finished, this, [this, result] {
+        connect(worker, &QThread::finished, this, [this, result, quick] {
             ocrBusy = false;
             if (!result->error.isEmpty()) status->setText("OCR: " + result->error);
             else if (result->text.trimmed().isEmpty()) status->setText("OCR found no text. Clipboard kept.");
@@ -329,7 +335,8 @@ private:
                 QApplication::clipboard()->setText(result->text);
                 status->setText(QString("OCR copied %1 characters to the clipboard.").arg(result->text.size()));
             }
-            show();
+            if (!quick || !result->error.isEmpty() || result->text.trimmed().isEmpty()) show();
+            else tray.showMessage("Text copied", "Your selected text is ready to paste.", QSystemTrayIcon::Information, 2000);
         });
         worker->start();
     }
@@ -343,9 +350,10 @@ private:
         captureBusy = false;
     }
 
-    void capture()
+    void capture(bool quick = false)
     {
         if (captureBusy) return;
+        if (quick && ocrBusy) { status->setText("OCR is already running."); show(); return; }
         if (!screenCaptureAllowed()) {
             status->setText("Allow FastPin in System Settings → Privacy & Security → Screen Recording, then try again. macOS may require restarting the app.");
             show();
@@ -356,7 +364,7 @@ private:
         hide();
         // One activation delay lets the panel/tray menu leave the compositor.
         // There is no recurring timer, mouse polling or screen recording stream.
-        QTimer::singleShot(80, this, [this] {
+        QTimer::singleShot(80, this, [this, quick] {
             QList<ScreenFrame> frames;
             QList<DesktopCoordinates> coordinates;
             const auto windows = desktopWindows();
@@ -376,6 +384,7 @@ private:
             // Capture every display before showing overlays, preserving each display's own DPR.
             for (qsizetype i = 0; i < frames.size(); ++i) {
                 auto *overlay = new CaptureOverlay(std::move(frames[i]), windows, coordinates[i]);
+                overlay->setQuickOcr(quick);
                 overlays.append(overlay);
                 connect(overlay, &CaptureOverlay::canceled, this, [this] { finishCapture(); });
                 connect(overlay, &CaptureOverlay::accepted, this, [this](QImage image, QPoint pos, bool copyOnly) {
@@ -383,8 +392,8 @@ private:
                     if (copyOnly) { history.remember(image, pos); replayAction->setEnabled(history.enabled); QApplication::clipboard()->setImage(image); }
                     else pin(std::move(image), pos);
                 });
-                connect(overlay, &CaptureOverlay::ocrRequested, this, [this](QImage image) {
-                    finishCapture(); ocr(std::move(image));
+                connect(overlay, &CaptureOverlay::ocrRequested, this, [this, quick](QImage image) {
+                    finishCapture(); ocr(std::move(image), quick);
                 });
                 connect(overlay, &CaptureOverlay::detectionModeChanged, this, [this, overlay](bool elementMode) {
                     if (elementMode && !elementAccessAllowed(false)) {
@@ -410,11 +419,11 @@ private:
     CaptureHistory history;
     QTabWidget *pages;
     QPointer<Onboarding> welcome;
-    std::array<ShortcutEdit *, 3> edits{};
-    QLabel *status, *settingsFeedback, *preview, *historyDetail, *captureKeys, *pasteKeys, *replayKeys;
+    std::array<ShortcutEdit *, 4> edits{};
+    QLabel *status, *settingsFeedback, *preview, *historyDetail, *captureKeys, *pasteKeys, *replayKeys, *ocrKeys;
     QPushButton *replayButton;
     QCheckBox *remember;
-    QAction *snipAction, *pasteAction, *replayAction;
+    QAction *snipAction, *pasteAction, *replayAction, *ocrAction;
     bool replayPending = false;
     bool shortcutsRecording = false;
     QList<PinWindow *> pins;

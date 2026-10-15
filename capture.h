@@ -39,6 +39,7 @@ class CaptureOverlay : public QWidget {
 public:
     explicit CaptureOverlay(ScreenFrame frame, QList<DesktopWindow> windows = {}, DesktopCoordinates coordinates = {});
     void setElementMode(bool enabled);
+    void setQuickOcr(bool enabled);
     bool isElementMode() const { return elementMode; }
 signals:
     void accepted(QImage image, QPoint position, bool clipboardOnly);
@@ -71,6 +72,7 @@ private:
     Selection selection;
     QPointF pointer;
     bool hex = true;
+    bool quickOcr = false;
     AnnotationLayer annotations;
     AnnotationToolbar *toolbar;
     InlineTextEditor *textEditor;

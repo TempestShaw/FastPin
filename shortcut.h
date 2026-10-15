@@ -24,7 +24,7 @@ struct MouseGesture {
     Qt::MouseButtons held{}, seen{};
     Qt::KeyboardModifiers modifiers{};
     bool owned = false;
-    Result event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods, const std::array<Shortcut, 3> &bindings);
+    Result event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods, const std::array<Shortcut, 4> &bindings);
 };
 
 class ShortcutEdit : public QLineEdit {

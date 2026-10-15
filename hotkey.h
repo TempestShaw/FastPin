@@ -11,7 +11,7 @@
 class Hotkeys : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
-    using Bindings = std::array<Shortcut, 3>;
+    using Bindings = std::array<Shortcut, 4>;
     explicit Hotkeys(QObject *parent = nullptr);
     ~Hotkeys() override;
     static Bindings defaults();
@@ -27,6 +27,7 @@ signals:
     void capture();
     void paste();
     void replay();
+    void quickOcr();
     void pinTools();
 private:
     void unregisterKeys();
@@ -37,7 +38,7 @@ private:
     struct Platform;
     std::unique_ptr<Platform> platform;
     Bindings current;
-    std::array<bool, 4> registered{};
+    std::array<bool, 5> registered{};
     bool pinToolsPressed = false;
     MouseGesture gesture;
     quint64 generation = 0;

@@ -50,6 +50,8 @@ These are the defaults. Change them in **Preferences** to use your own keys or m
 - **Sample a precise color.** Use the capture magnifier and arrow keys to position the cursor one pixel at a time. Press **C** to copy the color; **Shift** switches HEX and RGB.
 - **Make the controls yours.** Bind capture, paste, and restore to a key combination, a function key, or a mouse side-button gesture.
 
+To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The recognized text is copied straight to your clipboard. You can also choose **Copy text from screen** in the panel or menu.
+
 ## Install
 
 | Platform | Download | Requirements |
@@ -74,6 +76,7 @@ The [illustrated Quick Start](GETTING_STARTED.md) walks through installation, pe
 | Task | Control |
 | --- | --- |
 | Capture a screenshot | Ctrl+Shift+2 |
+| Copy text from screen | Ctrl+Shift+5 |
 | Pin an image from the clipboard | Ctrl+Shift+3 |
 | Restore the last image | Ctrl+Shift+4 |
 | Switch Window / Element detection | Tab while capturing |

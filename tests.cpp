@@ -175,6 +175,25 @@ private slots:
         reloaded.setValue("shortcuts/0", "Ctrl+K, Ctrl+C"); QCOMPARE(Hotkeys::load(reloaded), Hotkeys::defaults());
     }
 
+    void quickOcrBindingPreservesExistingPreferences()
+    {
+        QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
+        auto existing = Hotkeys::defaults();
+        existing[0] = existing[3];
+        for (int i = 0; i < 3; ++i)
+            settings.setValue(QString("shortcuts/%1").arg(i), existing[i].toString(QKeySequence::PortableText));
+        auto loaded = Hotkeys::load(settings);
+        for (int i = 0; i < 3; ++i) QCOMPARE(loaded[i], existing[i]);
+        QVERIFY(loaded[3].isEmpty());
+        loaded[3] = Shortcut(Qt::ForwardButton, Qt::ShiftModifier);
+        Hotkeys::save(settings, loaded);
+        QCOMPARE(Hotkeys::load(settings), loaded);
+        MouseGesture gesture;
+        QVERIFY(gesture.event(Qt::ForwardButton, true, Qt::ShiftModifier, loaded).consume);
+        QCOMPARE(gesture.event(Qt::ForwardButton, false, {}, loaded).action, 3);
+        loaded[3] = loaded[0]; QVERIFY(!Hotkeys::validate(loaded).isEmpty());
+    }
+
     void conflictingShortcutKeepsPreviousRegistration()
     {
 #ifdef Q_OS_WIN
@@ -606,6 +625,39 @@ private slots:
         QCOMPARE(pinned.size(), 1);
         QCOMPARE(qvariant_cast<QImage>(pinned[0][0]), pin.exportedImage());
         QCOMPARE(qvariant_cast<QImage>(pinned[0][0]).size(), QSize(640, 480));
+    }
+
+    void quickOcrCompletesOnReleaseWithoutPinOrToolbar()
+    {
+        ScreenFrame frame{QImage(640, 480, QImage::Format_RGB32), QRect(0, 0, 320, 240), 2};
+        frame.image.fill(Qt::white);
+        CaptureOverlay overlay(frame); overlay.setQuickOcr(true); overlay.show();
+        QSignalSpy selected(&overlay, &CaptureOverlay::ocrRequested), pinned(&overlay, &CaptureOverlay::accepted);
+        QSignalSpy canceled(&overlay, &CaptureOverlay::canceled);
+        QTest::mouseClick(&overlay, Qt::LeftButton, {}, {20, 20});
+        QCOMPARE(selected.size(), 0);
+        QTest::mousePress(&overlay, Qt::LeftButton, {}, {20, 20});
+        QTest::mouseMove(&overlay, {100, 80});
+        QCOMPARE(selected.size(), 0);
+        QTest::mouseRelease(&overlay, Qt::LeftButton, {}, {100, 80});
+        QCOMPARE(selected.size(), 1);
+        QCOMPARE(qvariant_cast<QImage>(selected[0][0]).size(), QSize(160, 120));
+        QVERIFY(!overlay.toolbar->isVisible());
+        QCOMPARE(pinned.size(), 0);
+        QTest::keyClick(&overlay, Qt::Key_Escape);
+        QCOMPARE(canceled.size(), 1);
+    }
+
+    void quickOcrAcceptsDetectedWindow()
+    {
+        ScreenFrame frame{QImage(320, 240, QImage::Format_RGB32), QRect(0, 0, 320, 240), 1};
+        frame.image.fill(Qt::white);
+        CaptureOverlay overlay(frame, {{QRectF(30, 40, 120, 90), 1, 0}});
+        overlay.setQuickOcr(true); overlay.show();
+        QSignalSpy selected(&overlay, &CaptureOverlay::ocrRequested);
+        QTest::mouseClick(&overlay, Qt::LeftButton, {}, {80, 80});
+        QCOMPARE(selected.size(), 1);
+        QCOMPARE(qvariant_cast<QImage>(selected[0][0]).size(), QSize(120, 90));
     }
 
 #ifdef Q_OS_MACOS

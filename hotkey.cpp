@@ -11,7 +11,7 @@ static QList<int> availableHotkeyBases;
 #include <ApplicationServices/ApplicationServices.h>
 struct Hotkeys::Platform {
     EventHandlerRef handler = nullptr;
-    std::array<EventHotKeyRef, 4> keys{};
+    std::array<EventHotKeyRef, 5> keys{};
     int base;
     CFMachPortRef mouseTap = nullptr;
     CFRunLoopSourceRef mouseSource = nullptr;
@@ -69,26 +69,29 @@ Hotkeys::Bindings Hotkeys::defaults()
     const auto control = Qt::CTRL;
 #endif
     return {QKeySequence(control | Qt::SHIFT | Qt::Key_2), QKeySequence(control | Qt::SHIFT | Qt::Key_3),
-            QKeySequence(control | Qt::SHIFT | Qt::Key_4)};
+            QKeySequence(control | Qt::SHIFT | Qt::Key_4), QKeySequence(control | Qt::SHIFT | Qt::Key_5)};
 }
 
 Hotkeys::Bindings Hotkeys::load(QSettings &settings)
 {
     auto result = defaults();
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 4; ++i)
         result[i] = Shortcut::fromString(settings.value(QString("shortcuts/%1").arg(i), result[i].toString(QKeySequence::PortableText)).toString());
+    // Preserve an existing binding if it already uses the new OCR default.
+    if (!settings.contains("shortcuts/3"))
+        for (int i = 0; i < 3; ++i) if (result[i] == result[3]) { result[3] = {}; break; }
     return validate(result).isEmpty() ? result : defaults();
 }
 
 void Hotkeys::save(QSettings &settings, const Bindings &bindings)
 {
-    for (int i = 0; i < 3; ++i) settings.setValue(QString("shortcuts/%1").arg(i), bindings[i].toString(QKeySequence::PortableText));
+    for (int i = 0; i < 4; ++i) settings.setValue(QString("shortcuts/%1").arg(i), bindings[i].toString(QKeySequence::PortableText));
     settings.sync();
 }
 
 QString Hotkeys::validate(const Bindings &bindings)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const auto &binding = bindings[i];
         const auto &key = binding.key;
         if (binding.isEmpty()) continue; // Empty disables this global shortcut.
@@ -111,7 +114,7 @@ QString Hotkeys::validate(const Bindings &bindings)
 Hotkeys::Hotkeys(QObject *parent) : QObject(parent), platform(std::make_unique<Platform>())
 {
     // Pins create temporary shortcut owners; recycle IDs when they close.
-    if (availableHotkeyBases.isEmpty()) { platform->base = nextHotkeyBase; nextHotkeyBase += 4; }
+    if (availableHotkeyBases.isEmpty()) { platform->base = nextHotkeyBase; nextHotkeyBase += 5; }
     else platform->base = availableHotkeyBases.takeLast();
 #ifdef Q_OS_MACOS
     const EventTypeSpec types[]{{kEventClassKeyboard, kEventHotKeyPressed}, {kEventClassKeyboard, kEventHotKeyReleased}};
@@ -121,12 +124,12 @@ Hotkeys::Hotkeys(QObject *parent) : QObject(parent), platform(std::make_unique<P
             return eventNotHandledErr;
         auto *hotkeys = static_cast<Hotkeys *>(context);
         const int index = int(id.id) - hotkeys->platform->base;
-        if (id.signature != 0x53504b4e || index < 0 || index >= 4) return eventNotHandledErr;
+        if (id.signature != 0x53504b4e || index < 0 || index >= 5) return eventNotHandledErr;
         if (GetEventKind(event) == kEventHotKeyReleased) {
-            if (index != 3) return eventNotHandledErr;
+            if (index != 4) return eventNotHandledErr;
             hotkeys->pinToolsPressed = false; return noErr;
         }
-        if (index == 3) {
+        if (index == 4) {
             if (hotkeys->pinToolsPressed) return noErr;
             hotkeys->pinToolsPressed = true;
         }
@@ -167,14 +170,15 @@ void Hotkeys::dispatch(int index)
     if (index == 0) emit capture();
     else if (index == 1) emit paste();
     else if (index == 2) emit replay();
-    else if (index == 3) emit pinTools();
+    else if (index == 3) emit quickOcr();
+    else if (index == 4) emit pinTools();
 }
 
 void Hotkeys::enablePinTools(bool enabled)
 {
-    if (enabled == registered[3]) return;
-    if (enabled) registerKey(3, QKeySequence(Qt::Key_Space));
-    else unregisterKey(3);
+    if (enabled == registered[4]) return;
+    if (enabled) registerKey(4, QKeySequence(Qt::Key_Space));
+    else unregisterKey(4);
 }
 
 static constexpr qint64 replayTag = 0x53504b4d;
@@ -300,7 +304,7 @@ void Hotkeys::unregisterKeys()
         Platform::mouseOwner = nullptr;
     }
 #endif
-    for (int i = 0; i < 4; ++i) unregisterKey(i);
+    for (int i = 0; i < 5; ++i) unregisterKey(i);
 }
 
 void Hotkeys::unregisterKey(int index)
@@ -312,7 +316,7 @@ void Hotkeys::unregisterKey(int index)
     UnregisterHotKey(nullptr, platform->base + index);
 #endif
     registered[index] = false;
-    if (index == 3) pinToolsPressed = false;
+    if (index == 4) pinToolsPressed = false;
 }
 
 QString Hotkeys::apply(const Bindings &bindings)
@@ -321,7 +325,7 @@ QString Hotkeys::apply(const Bindings &bindings)
     const auto previous = current;
     unregisterKeys();
     QString error;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         if (registerKey(i, bindings[i].key)) continue;
         error = QString("%1 is unavailable or already in use.").arg(bindings[i].toString());
         break;
@@ -336,7 +340,7 @@ QString Hotkeys::apply(const Bindings &bindings)
     if (!error.isEmpty()) {
         unregisterKeys();
         bool restored = true;
-        for (int j = 0; j < 3; ++j) restored = registerKey(j, previous[j].key) && restored;
+        for (int j = 0; j < 4; ++j) restored = registerKey(j, previous[j].key) && restored;
         restored = registerMouse(previous) && restored;
         return error + (restored ? " Previous shortcuts kept." : " Some previous shortcuts could not be restored. Use the menu bar or panel.");
     }
@@ -360,7 +364,7 @@ bool Hotkeys::nativeEventFilter(const QByteArray &, void *message, qintptr *resu
 #ifdef Q_OS_WIN
     auto *msg = static_cast<MSG *>(message);
     const int index = int(msg->wParam) - platform->base;
-    if (msg->message == WM_HOTKEY && index >= 0 && index < 4) {
+    if (msg->message == WM_HOTKEY && index >= 0 && index < 5) {
         dispatch(index);
         *result = 0;
         return true;

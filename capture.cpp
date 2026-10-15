@@ -129,6 +129,14 @@ CaptureOverlay::CaptureOverlay(ScreenFrame value, QList<DesktopWindow> targets, 
     setElementMode(false);
 }
 
+void CaptureOverlay::setQuickOcr(bool enabled)
+{
+    quickOcr = enabled;
+    setWindowTitle(enabled ? "FastPin — Select text" : "FastPin — Select region");
+    setAccessibleName(enabled ? "OCR selection" : "Screenshot selection");
+    update();
+}
+
 QRectF CaptureOverlay::detectedLocalRect(QRectF native) const
 {
     return coordinates.localRect(native.intersected(target.rect)).intersected(rect());
@@ -315,8 +323,10 @@ void CaptureOverlay::paintEvent(QPaintEvent *)
     const QRect help(12, height() - 65, qMin(width() - 24, detectionHint.isEmpty() ? 460 : 720), detectionHint.isEmpty() ? 30 : 53);
     p.setPen(Qt::NoPen); p.setBrush(QColor("#242a35")); p.drawRoundedRect(help, 6, 6); p.setPen(Qt::white);
     p.drawText(help.adjusted(8, 0, 0, 0), Qt::AlignVCenter,
-               QString("%1  [Tab] · Drag to select · Enter to pin · Esc to cancel%2")
-                   .arg(elementMode ? "Element" : "Window", detectionHint.isEmpty() ? QString() : "\n" + detectionHint));
+               QString("%1  [Tab] · %2 · Esc to cancel%3")
+                   .arg(elementMode ? "Element" : "Window",
+                        quickOcr ? "Select to copy text" : "Drag to select · Enter to pin",
+                        detectionHint.isEmpty() ? QString() : "\n" + detectionHint));
 }
 
 void CaptureOverlay::mousePressEvent(QMouseEvent *e)
@@ -363,6 +373,7 @@ void CaptureOverlay::mouseReleaseEvent(QMouseEvent *e)
         const QRegion previous(selection.rect.toAlignedRect());
         if (detectClick && QLineF(pressPoint, e->position()).length() < 3) selection.rect = pressedPreview;
         locked = !selection.rect.isEmpty();
+        if (quickOcr && locked) { emit ocrRequested(selectedImage()); return; }
         if (locked) { positionTools(); toolbar->show(); }
         update(previous + decorationRegion() + QRegion(selection.rect.toAlignedRect()));
     }
@@ -376,6 +387,7 @@ void CaptureOverlay::accept(bool clipboardOnly)
 {
     textEditor->finish();
     if (frame.pixelRect(selection.rect).isEmpty()) return;
+    if (quickOcr) { emit ocrRequested(selectedImage()); return; }
     emit accepted(selectedImage(), frame.geometry.topLeft() + selection.rect.topLeft().toPoint(), clipboardOnly);
 }
 
