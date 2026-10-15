@@ -5,14 +5,17 @@
         <description>Signed FastPin updates</description>
         <language>en</language>
         <item>
-            <title>0.1.0-preview.8</title>
-            <pubDate>Thu, 15 Oct 2026 21:46:23 +0000</pubDate>
-            <link>https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.8</link>
-            <sparkle:version>37</sparkle:version>
-            <sparkle:shortVersionString>0.1.0-preview.8</sparkle:shortVersionString>
+            <title>0.1.0-preview.9</title>
+            <pubDate>Thu, 15 Oct 2026 23:07:50 +0000</pubDate>
+            <link>https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.9</link>
+            <sparkle:version>42</sparkle:version>
+            <sparkle:shortVersionString>0.1.0-preview.9</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion></sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.8/FastPin-macOS-arm64.zip" length="32688024" type="application/octet-stream" sparkle:edSignature="gQ5chEWP9t6+AzlA+4NLloSAluSTE0pjQJHkeVTsouUWK67tD+avQ+wDzHQOuX6gjH/W664BIoU5nzd3J6iDAw=="/>
+            <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.9/FastPin-macOS-arm64.zip" length="32692095" type="application/octet-stream" sparkle:edSignature="eVpX9b7R9OwTB597BxM1i2dFfrXnvEt3MjUp6eMUqpBYTTKNnhh5xQw5mVB1lvkVboAM1ukW3TiRpfqqJtCcDA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.9/FastPin42-37.delta" sparkle:deltaFrom="37" length="98534" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="978864" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="bEnWvNGVT413eZ0sSdnDuX88cJkxNqBaOxONafaWe+IN02yg4KhZWQnjyBn+4ZPh0jOAXNGPsDiHYB04qFZBBg=="/>
+            </sparkle:deltas>
         </item>
     </channel>
 </rss>
