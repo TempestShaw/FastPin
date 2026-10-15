@@ -79,7 +79,7 @@ private slots:
         QCoreApplication::setApplicationName("FastPinMacSettingsTests");
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, directory.path());
-        for (int i = 0; i < 5; ++i) bindings[i] = QKeySequence(QKeyCombination(Qt::MetaModifier | Qt::AltModifier | Qt::ShiftModifier, Qt::Key(i < 4 ? Qt::Key_F17 + i : Qt::Key_F16)));
+        for (int i = 0; i < hotkeyActionCount; ++i) bindings[i] = QKeySequence(QKeyCombination(Qt::MetaModifier | Qt::AltModifier | Qt::ShiftModifier, Qt::Key(i < 4 ? Qt::Key_F17 + i : Qt::Key_F16)));
     }
 
     void nativePagesRecordingAndPersistence()

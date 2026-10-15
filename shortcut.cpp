@@ -7,6 +7,13 @@
 
 static const auto sideButtons = Qt::BackButton | Qt::ForwardButton;
 
+QString hotkeyActionName(int action)
+{
+    static const std::array<const char *, hotkeyActionCount> names{
+        "Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen", "Dictionary / translate"};
+    return action >= 0 && action < hotkeyActionCount ? QString(names[action]) : QString();
+}
+
 QString Shortcut::toString(QKeySequence::SequenceFormat format) const
 {
     if (!buttons) return key.toString(format);
@@ -36,7 +43,7 @@ Shortcut Shortcut::fromString(const QString &text)
 }
 
 MouseGesture::Result MouseGesture::event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods,
-                                       const std::array<Shortcut, 5> &bindings)
+                                       const HotkeyBindings &bindings)
 {
     if (!(button & sideButtons)) return {};
     if (down) {
@@ -53,7 +60,7 @@ MouseGesture::Result MouseGesture::event(Qt::MouseButton button, bool down, Qt::
     Result result{owned};
     if (held) return result;
     if (owned) {
-        for (int i = 0; i < 5; ++i)
+        for (int i = 0; i < hotkeyActionCount; ++i)
             if (bindings[i].buttons == seen && bindings[i].modifiers == modifiers) { result.action = i; break; }
         if (result.action < 0) { result.replay = seen; result.modifiers = modifiers; }
     }

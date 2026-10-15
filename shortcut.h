@@ -19,13 +19,19 @@ struct Shortcut {
     bool operator==(const Shortcut &other) const { return key == other.key && buttons == other.buttons && modifiers == other.modifiers; }
 };
 
+// Global actions in settings order: the index is the "shortcuts/<index>" key.
+enum class HotkeyAction { Capture, Paste, Replay, CopyText, Translate };
+inline constexpr int hotkeyActionCount = 5;
+using HotkeyBindings = std::array<Shortcut, hotkeyActionCount>;
+QString hotkeyActionName(int action);
+
 // A side-button gesture completes on release, so a two-button chord wins over its prefix.
 struct MouseGesture {
     struct Result { bool consume = false; int action = -1; Qt::MouseButtons replay{}; Qt::KeyboardModifiers modifiers{}; };
     Qt::MouseButtons held{}, seen{};
     Qt::KeyboardModifiers modifiers{};
     bool owned = false;
-    Result event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods, const std::array<Shortcut, 5> &bindings);
+    Result event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods, const HotkeyBindings &bindings);
 };
 
 class ShortcutEdit : public QLineEdit {

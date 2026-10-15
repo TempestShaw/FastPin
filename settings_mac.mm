@@ -6,7 +6,7 @@
 #import <AppKit/AppKit.h>
 #import <Sparkle/Sparkle.h>
 
-static NSString *text(const QString &value) { return [NSString stringWithUTF8String:value.toUtf8().constData()]; }
+static NSString *text(const QString &value) { return value.toNSString(); }
 
 static Qt::KeyboardModifiers modifiers(NSEventModifierFlags flags)
 {
@@ -191,8 +191,8 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
 
     NSMutableArray *buttons = [NSMutableArray array];
     NSStackView *shortcutRows = stack(@[]);
-    NSArray *names = @[@"Capture screenshot", @"Paste as pin", @"Restore last image", @"Copy text from screen", @"Dictionary / translate"];
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < hotkeyActionCount; ++i) {
+        NSString *actionName = text(hotkeyActionName(i));
         FastPinShortcutButton *button = [[FastPinShortcutButton alloc] init];
         button.bezelStyle = NSBezelStyleRounded; button.target = button; button.action = @selector(record:);
         button->binding = hotkeys->bindings()[i];
@@ -206,9 +206,9 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
                 if (!error.isEmpty()) { owner->feedbackText = text(error); owner->feedback.stringValue = owner->feedbackText; }
             }
         };
-        [button refreshTitle]; button.accessibilityLabel = [names[i] stringByAppendingString:@" shortcut"];
+        [button refreshTitle]; button.accessibilityLabel = [actionName stringByAppendingString:@" shortcut"];
         [button.widthAnchor constraintEqualToConstant:190].active = YES;
-        NSTextField *name = label(names[i]); [name.widthAnchor constraintEqualToConstant:240].active = YES;
+        NSTextField *name = label(actionName); [name.widthAnchor constraintEqualToConstant:240].active = YES;
         [shortcutRows addArrangedSubview:stack(@[name, button], NSUserInterfaceLayoutOrientationHorizontal)];
         [buttons addObject:button];
     }
@@ -267,14 +267,14 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
 {
     [self finishRecording];
     const auto defaults = Hotkeys::defaults();
-    for (int i = 0; i < 5; ++i) { shortcutButtons[i]->binding = defaults[i]; [shortcutButtons[i] refreshTitle]; }
+    for (int i = 0; i < hotkeyActionCount; ++i) { shortcutButtons[i]->binding = defaults[i]; [shortcutButtons[i] refreshTitle]; }
     feedback.stringValue = @"Defaults selected. Apply to activate them.";
 }
 - (void)applyShortcuts:(id)sender
 {
     [self finishRecording];
     Hotkeys::Bindings bindings;
-    for (int i = 0; i < 5; ++i) bindings[i] = shortcutButtons[i]->binding;
+    for (int i = 0; i < hotkeyActionCount; ++i) bindings[i] = shortcutButtons[i]->binding;
     const auto error = hotkeys->apply(bindings);
     if (!error.isEmpty()) { feedback.stringValue = text(error); return; }
     Hotkeys::save(*settings, bindings); shortcutsChanged();
