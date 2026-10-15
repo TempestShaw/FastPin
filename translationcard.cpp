@@ -117,9 +117,11 @@ void TranslationCard::translateOnline()
     QNetworkRequest request(onlineTranslationUrl(source)); request.setTransferTimeout(10000);
     auto *reply = network->get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply, network] {
-        const auto result = parseTranslationReply(reply->readAll());
+        // Network-layer failures (offline, DNS, proxy, timeout) sort below Qt's content errors.
+        const auto error = reply->error();
+        const bool transportFailed = error != QNetworkReply::NoError && error < QNetworkReply::ContentAccessDenied;
+        const auto result = parseTranslationReply(reply->readAll(), transportFailed);
         if (!result.error.isEmpty()) setResult(result.error, "MyMemory · Online");
-        else if (reply->error() != QNetworkReply::NoError) setResult("Online translation unavailable. Check your connection and try again.", "MyMemory · Online");
         else { setResult(result.text, "MyMemory · Online"); copy->setEnabled(true); }
         online->setEnabled(true); network->deleteLater();
     });

@@ -173,6 +173,7 @@ private slots:
     void translationPinsCardAndKeepsPanelHidden()
     {
         Controller panel;
+        QApplication::clipboard()->setText("Original clipboard");
         QImage image(8, 8, QImage::Format_RGB32); image.fill(Qt::green);
         panel.ocr(image, true);
         TranslationCard *card = nullptr;
@@ -189,7 +190,8 @@ private slots:
         QVERIFY(card->findChild<QToolButton *>("pronounce")->isEnabled());
         QVERIFY(card->findChild<QToolButton *>("copyDefinition")->isEnabled());
         card->close();
-        QCOMPARE(QApplication::clipboard()->text(), QString("bank")); QVERIFY(!panel.isVisible());
+        // Translation reads the screen but leaves the user's clipboard alone.
+        QCOMPARE(QApplication::clipboard()->text(), QString("Original clipboard")); QVERIFY(!panel.isVisible());
     }
 
     void pendingTranslationShowsOcrFailure_data()

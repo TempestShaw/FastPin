@@ -63,6 +63,9 @@ private slots:
         QVERIFY(!parseTranslationReply("not json").error.isEmpty());
         QVERIFY(!parseTranslationReply(R"({"responseStatus":200,"responseData":{"translatedText":""}})").error.isEmpty());
         QVERIFY(parseTranslationReply(R"({"responseStatus":"429","quotaFinished":true})").error.contains("quota"));
+        QVERIFY(parseTranslationReply({}, true).error.contains("connection"));
+        QVERIFY(parseTranslationReply(R"({"responseStatus":"429","quotaFinished":true})", true).error.contains("quota"));
+        QVERIFY(!parseTranslationReply(R"({"responseStatus":500})").error.contains("connection"));
     }
 
     void translationCardStaysNearPointerWithoutFocusAndCloses()

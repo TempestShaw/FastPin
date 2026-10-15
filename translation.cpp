@@ -69,11 +69,12 @@ QUrl onlineTranslationUrl(const QString &text)
     return url;
 }
 
-TranslationResult parseTranslationReply(const QByteArray &json)
+TranslationResult parseTranslationReply(const QByteArray &json, bool transportFailed)
 {
     const auto root = QJsonDocument::fromJson(json).object();
     if (root.value("quotaFinished").toBool() || root.value("responseStatus").toVariant().toInt() == 429)
         return {{}, "The free online translation quota is used up. Try again tomorrow."};
+    if (transportFailed) return {{}, "Online translation unavailable. Check your connection and try again."};
     const auto text = root.value("responseData").toObject().value("translatedText").toString();
     if (root.value("responseStatus").toVariant().toInt() != 200 || text.trimmed().isEmpty())
         return {{}, "Online translation unavailable. Try again later."};

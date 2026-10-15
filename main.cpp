@@ -412,10 +412,11 @@ private:
             } else if (result->text.trimmed().isEmpty()) {
                 if (card) card->setOcrError("No text found. Try selecting a tighter region.");
                 else if (!translate) reportStatus("OCR found no text. Clipboard kept.");
-            } else {
+            } else if (card) {
+                card->setSourceText(result->text); // Translation leaves the user's clipboard untouched.
+            } else if (!translate) {
                 QApplication::clipboard()->setText(result->text);
-                if (card) card->setSourceText(result->text);
-                else if (!translate) reportStatus(QString("OCR copied %1 characters to the clipboard.").arg(result->text.size()));
+                reportStatus(QString("OCR copied %1 characters to the clipboard.").arg(result->text.size()));
             }
         });
         worker->start();
