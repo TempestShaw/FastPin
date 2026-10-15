@@ -83,6 +83,7 @@ jobs:
             build/*.dmg
             build/*.zip
             build/update-feed/appcast.xml
+            build/update-feed/*.delta
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -105,13 +106,18 @@ jobs:
         run: |
           mac=build/release/FastPin-macos-14
           windows=build/release/FastPin-windows-2022
+          shopt -s nullglob
+          deltas=("$mac"/update-feed/*.delta)
           args=()
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then args+=(--prerelease); fi
           (cd "$mac" && sha256sum FastPin-macOS-arm64.zip FastPin-macOS.dmg) > build/release/SHA256SUMS.txt
           (cd "$windows" && sha256sum FastPin-Windows-x64.zip FastPin-x64.msix) >> build/release/SHA256SUMS.txt
+          if (( ${#deltas[@]} )); then
+            (cd "$mac/update-feed" && sha256sum *.delta) >> build/release/SHA256SUMS.txt
+          fi
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "FastPin ${GITHUB_REF_NAME#v}" --generate-notes "${args[@]}" \
             "$mac/FastPin-macOS-arm64.zip" "$mac/FastPin-macOS.dmg" "$mac/update-feed/appcast.xml" \
-            "$windows/FastPin-Windows-x64.zip" "$windows/FastPin-x64.msix" build/release/SHA256SUMS.txt
+            "$windows/FastPin-Windows-x64.zip" "$windows/FastPin-x64.msix" "${deltas[@]}" build/release/SHA256SUMS.txt
           cp "$mac/update-feed/appcast.xml" updates/appcast.xml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

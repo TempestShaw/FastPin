@@ -10,7 +10,7 @@ Sparkle authenticates update archives against `SUPublicEDKey` in Info.plist. The
 
 The public feed is `https://raw.githubusercontent.com/TempestShaw/FastPin/main/updates/appcast.xml`. It supports preview releases without relying on GitHub's stable-only latest-release redirect. An empty initial feed advertises no update; it is not a published updater-enabled release.
 
-Push a new `v*` tag after the change is merged to main. The build workflow sets the display version from the tag and the increasing build version from the workflow run number. Both platform builds and all tests must pass. CI then signs the macOS ZIP with the Sparkle key, publishes the packages and appcast, and commits the updated feed to main. Tag builds fail if the signing key is missing. The workflow needs permission to push the feed commit to main.
+Push a new `v*` tag after the change is merged to main. The build workflow sets the display version from the tag and the increasing build version from the workflow run number. Both platform builds and all tests must pass. CI downloads the previous published macOS ZIP and lets Sparkle generate a signed delta for that version. Only generated deltas that Sparkle considers worthwhile are published; unmatched versions or failed delta application fall back to the full archive. Both full archives and deltas are checksummed. CI then signs the macOS ZIP with the Sparkle key, publishes the packages and appcast, and commits the updated feed to main. Tag builds fail if the signing key is missing. The workflow needs permission to push the feed commit to main.
 
 For a manual release, configure both `FASTPIN_VERSION` and an increasing `FASTPIN_BUILD_VERSION`, package/sign the app, then run:
 
@@ -18,7 +18,7 @@ For a manual release, configure both `FASTPIN_VERSION` and an increasing `FASTPI
 ./make-update-feed.sh build path/to/FastPin-macOS-arm64.zip v0.1.0-preview.8 build/update-feed
 ```
 
-Upload the ZIP under the exact versioned release URL in the generated feed, then commit `build/update-feed/appcast.xml` as `updates/appcast.xml`. Do not publish an update before its download is available. `release-macos.sh` handles Developer ID signing/notarization; CI development previews remain ad hoc signed and may require regranting macOS permissions after replacement. Sparkle signatures authenticate updates but do not replace notarization or a stable app signing identity.
+Upload the ZIP and any generated `.delta` files under the exact versioned release URLs in the generated feed, then commit `build/update-feed/appcast.xml` as `updates/appcast.xml`. Do not publish an update before its download is available. `release-macos.sh` handles Developer ID signing/notarization; CI development previews remain ad hoc signed and may require regranting macOS permissions after replacement. Sparkle signatures authenticate updates but do not replace notarization or a stable app signing identity.
 
 Older FastPin previews contain no updater. Users need one manual installation of the first updater-enabled build; subsequent signed builds can update in place. Windows updates remain manual.
 
