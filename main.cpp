@@ -5,6 +5,7 @@
 #include "onboarding.h"
 #include "translation.h"
 #include "translationcard.h"
+#include "doubletap.h"
 #if defined(Q_OS_MACOS) && !defined(FASTPIN_CONTROLLER_TEST)
 #define FASTPIN_NATIVE_SETTINGS
 #include "settings_mac.h"
@@ -35,6 +36,8 @@
 
 class Controller : public QWidget {
 public:
+    ~Controller() override { setDoubleControl(false); }
+
     Controller()
         : hotkeys(this), tray(this), history(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/last-image.png", this)
     {
@@ -165,9 +168,12 @@ public:
         const QString error = hotkeys.apply(bindings);
         for (int i = 0; i < hotkeyActionCount; ++i) if (edits[i]) edits[i]->setBinding(bindings[i]);
         if (!error.isEmpty()) { setSettingsFeedback(error); status->setText("A shortcut is unavailable. Change it in Settings."); }
+        applyDoubleControl(settings.value(doubleControlSetting, true).toBool());
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
             QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
+            // Accessibility may have been granted while FastPin was in the background.
+            if (!stopDoubleControl && settings.value(doubleControlSetting, true).toBool()) setDoubleControl(true);
         });
         qApp->installEventFilter(this);
     }
@@ -244,6 +250,13 @@ private:
             edits[i]->setAccessibleName(hotkeyActionName(i) + " shortcut"); edits[i]->setFixedWidth(218); row->addWidget(edits[i]); shortcutLayout->addLayout(row);
         }
         preferencesLayout->addWidget(shortcutCard);
+        auto *doubleControl = new QCheckBox("Double-tap Control to translate", this);
+        doubleControl->setChecked(settings.value(doubleControlSetting, true).toBool());
+        preferencesLayout->addWidget(doubleControl);
+        connect(doubleControl, &QCheckBox::toggled, this, [this](bool enabled) {
+            settings.setValue(doubleControlSetting, enabled); settings.sync();
+            applyDoubleControl(enabled);
+        });
         auto *buttons = new QHBoxLayout;
         auto *defaults = new QPushButton("Reset to defaults", this); buttons->addWidget(defaults); buttons->addStretch();
         auto *apply = new QPushButton("Apply shortcuts", this); apply->setObjectName("applyShortcuts"); buttons->addWidget(apply); preferencesLayout->addLayout(buttons);
@@ -282,7 +295,8 @@ private:
     void setupNativeSettings()
     {
         nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
-            [this] { refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); });
+            [this] { refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); },
+            [this](bool enabled) { applyDoubleControl(enabled); });
         applicationMenuBar = std::make_unique<QMenuBar>();
         auto *applicationMenu = applicationMenuBar->addMenu("FastPin");
         applicationMenu->addAction("About FastPin", this, [this] { nativeSettings->show(MacSettings::About); })->setMenuRole(QAction::AboutRole);
@@ -349,6 +363,42 @@ private:
             actions[i]->setText(hotkeyActionName(i) + (bindings[i].buttons ? " · " + bindings[i].toString() : QString()));
             actionKeys[i]->setText(bindings[i].toString(QKeySequence::NativeText));
         }
+        if (stopDoubleControl) {
+            auto *translateKeys = actionKeys[int(HotkeyAction::Translate)];
+            const QString tap = QKeySequence(Qt::META).toString(QKeySequence::NativeText).remove('+');
+            translateKeys->setText(tap + tap + (translateKeys->text().isEmpty() ? QString() : " · " + translateKeys->text()));
+        }
+    }
+
+    void setDoubleControl(bool enabled)
+    {
+        if (stopDoubleControl) { stopDoubleControl(); stopDoubleControl = {}; }
+        if (!enabled) return;
+        QPointer<Controller> self(this);
+        stopDoubleControl = watchDoubleControl([self] {
+            if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Translate);
+        });
+    }
+
+    void applyDoubleControl(bool enabled)
+    {
+        setDoubleControl(enabled);
+        if (enabled && !stopDoubleControl) requestDoubleControlAccess();
+        if (actions[0]) refreshShortcuts();
+    }
+
+    void requestDoubleControlAccess()
+    {
+#ifdef Q_OS_MACOS
+        // macOS reports other apps' key events only after Accessibility is granted. Ask once.
+        if (QGuiApplication::platformName() != "cocoa") return;
+        status->setText("Double-tap Control needs Accessibility. Allow FastPin in System Settings → Privacy & Security → Accessibility.");
+        if (settings.value("translate/doubleControlPrompted", false).toBool()) return;
+        settings.setValue("translate/doubleControlPrompted", true);
+        QTimer::singleShot(1500, this, [this] { if (!welcome) elementAccessAllowed(true); });
+#else
+        status->setText("Double-tap Control is unavailable. Use the Dictionary shortcut instead.");
+#endif
     }
 
     void refreshHistory()
@@ -551,6 +601,7 @@ private:
 #ifdef Q_OS_MACOS
     std::function<void()> restoreCaptureFocus;
 #endif
+    std::function<void()> stopDoubleControl;
     bool captureBusy = false;
     bool ocrBusy = false;
 };

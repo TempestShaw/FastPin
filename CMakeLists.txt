@@ -15,7 +15,7 @@ if(APPLE)
 endif()
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Network)
 
-add_library(fastpin_core STATIC capture.cpp pin.cpp ocr.cpp annotation.cpp toolbar.cpp texteditor.cpp history.cpp hotkey.cpp shortcut.cpp onboarding.cpp translation.cpp translationcard.cpp)
+add_library(fastpin_core STATIC capture.cpp pin.cpp ocr.cpp annotation.cpp toolbar.cpp texteditor.cpp history.cpp hotkey.cpp shortcut.cpp onboarding.cpp translation.cpp translationcard.cpp doubletap.cpp)
 # Already zlib-compressed by tools/build-dictionary.py; skip a second rcc compression pass.
 qt_add_resources(fastpin_core dictionary PREFIX "/dictionary" BASE "dictionary" OPTIONS -no-compress FILES dictionary/cedict.tsv.qz)
 if(APPLE)

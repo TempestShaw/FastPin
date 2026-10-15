@@ -1,6 +1,7 @@
 #include "settings_mac.h"
 #include "hotkey.h"
 #include "history.h"
+#include "doubletap.h"
 
 #include <QCoreApplication>
 #import <AppKit/AppKit.h>
@@ -144,6 +145,7 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     QSettings *settings;
     CaptureHistory *history;
     std::function<void()> shortcutsChanged, historyChanged;
+    std::function<void(bool)> doubleControlChanged;
     NSArray<FastPinShortcutButton *> *shortcutButtons;
     NSTextField *feedback, *updateStatus;
     NSButton *remember, *automaticChecks, *automaticDownloads, *updateButton;
@@ -217,8 +219,11 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     NSButton *apply = [NSButton buttonWithTitle:@"Apply Shortcuts" target:self action:@selector(applyShortcuts:)];
     apply.keyEquivalent = @"\r";
     feedback = label(feedbackText ?: @"", YES);
+    NSButton *doubleControl = [NSButton checkboxWithTitle:@"Double-tap Control to translate" target:self action:@selector(doubleControlToggled:)];
+    doubleControl.state = settings->value(doubleControlSetting, true).toBool() ? NSControlStateValueOn : NSControlStateValueOff;
+    doubleControl.toolTip = @"Tap Control twice quickly to start Dictionary / translate. Needs Accessibility permission.";
     [tabs addChildViewController:page(@"Shortcuts", @"keyboard", stack(@[
-        label(@"Global Shortcuts"), shortcutRows,
+        label(@"Global Shortcuts"), shortcutRows, doubleControl,
         label(@"Click a shortcut, then press keys or Mouse4 / Mouse5. Hold both side buttons for a combo. Delete clears a shortcut; Escape ends recording. Use Fn for function keys when needed.", YES),
         stack(@[defaults, apply], NSUserInterfaceLayoutOrientationHorizontal), feedback]))];
 
@@ -263,6 +268,12 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     historyChanged();
 }
 - (void)clearHistory:(id)sender { history->clear(); historyChanged(); }
+- (void)doubleControlToggled:(NSButton *)sender
+{
+    const bool enabled = sender.state == NSControlStateValueOn;
+    settings->setValue(doubleControlSetting, enabled); settings->sync();
+    if (doubleControlChanged) doubleControlChanged(enabled);
+}
 - (void)resetShortcuts:(id)sender
 {
     [self finishRecording];
@@ -337,13 +348,15 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
 struct MacSettings::Impl { FastPinSettingsController *controller; };
 
 MacSettings::MacSettings(Hotkeys &hotkeys, QSettings &settings, CaptureHistory &history,
-                         std::function<void()> shortcutsChanged, std::function<void()> historyChanged)
+                         std::function<void()> shortcutsChanged, std::function<void()> historyChanged,
+                         std::function<void(bool)> doubleControlChanged)
     : impl(std::make_unique<Impl>())
 {
     auto *controller = [[FastPinSettingsController alloc] init];
     impl->controller = controller;
     controller->hotkeys = &hotkeys; controller->settings = &settings; controller->history = &history;
     controller->shortcutsChanged = std::move(shortcutsChanged); controller->historyChanged = std::move(historyChanged);
+    controller->doubleControlChanged = std::move(doubleControlChanged);
     [controller startUpdater];
 }
 

@@ -6,6 +6,7 @@
 #include "onboarding.h"
 #include "translation.h"
 #include "translationcard.h"
+#include "doubletap.h"
 #include <QStackedWidget>
 #include <QTemporaryDir>
 #include <QFileInfo>
@@ -299,6 +300,34 @@ private slots:
         settings.setValue("shortcuts/1", legacy.toString(QKeySequence::PortableText));
         loaded = Hotkeys::load(settings);
         QCOMPARE(loaded[1], legacy); QCOMPARE(loaded[translate], defaults[translate]);
+    }
+
+    void doubleControlTapTriggersOnlyForTwoQuickCleanTaps()
+    {
+        using In = DoubleTapDetector::Input;
+        auto taps = [](DoubleTapDetector &d, std::initializer_list<std::pair<In, qint64>> events) {
+            int triggered = 0;
+            for (const auto &[input, at] : events) triggered += d.feed(input, at);
+            return triggered;
+        };
+        DoubleTapDetector quick;
+        QCOMPARE(taps(quick, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::ControlDown, 200}, {In::ControlUp, 260}}), 1);
+        // A third tap starts over instead of firing again.
+        QCOMPARE(taps(quick, {{In::ControlDown, 330}, {In::ControlUp, 380}}), 0);
+        DoubleTapDetector slowGap;
+        QCOMPARE(taps(slowGap, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::ControlDown, 700}, {In::ControlUp, 760}}), 0);
+        DoubleTapDetector held;
+        QCOMPARE(taps(held, {{In::ControlDown, 0}, {In::ControlUp, 600}, {In::ControlDown, 700}, {In::ControlUp, 760}}), 0);
+        // Control used as a modifier (Ctrl+C, Ctrl-click) never counts as a tap.
+        DoubleTapDetector chord;
+        QCOMPARE(taps(chord, {{In::ControlDown, 0}, {In::Other, 40}, {In::ControlUp, 80}, {In::ControlDown, 200}, {In::ControlUp, 260}}), 0);
+        DoubleTapDetector interrupted;
+        QCOMPARE(taps(interrupted, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::Other, 120}, {In::ControlDown, 200}, {In::ControlUp, 260}}), 0);
+        // Windows repeats key-down while Control is held; repeats are ignored.
+        DoubleTapDetector repeats;
+        QCOMPARE(taps(repeats, {{In::ControlDown, 0}, {In::ControlDown, 30}, {In::ControlUp, 80}, {In::ControlDown, 200}, {In::ControlUp, 260}}), 1);
+        DoubleTapDetector strayUp;
+        QCOMPARE(taps(strayUp, {{In::ControlUp, 0}, {In::ControlDown, 100}, {In::ControlUp, 150}}), 0);
     }
 
     void quickOcrBindingPreservesExistingPreferences()

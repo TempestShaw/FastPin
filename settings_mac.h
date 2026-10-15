@@ -12,7 +12,8 @@ class MacSettings {
 public:
     enum Page { Settings, Shortcuts, About };
     MacSettings(Hotkeys &hotkeys, QSettings &settings, CaptureHistory &history,
-                std::function<void()> shortcutsChanged, std::function<void()> historyChanged);
+                std::function<void()> shortcutsChanged, std::function<void()> historyChanged,
+                std::function<void(bool)> doubleControlChanged = {});
     ~MacSettings();
     void show(Page page = Settings);
     void hide();

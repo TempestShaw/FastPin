@@ -49,7 +49,7 @@ These are the defaults. Change them in **Preferences** to use your own keys or m
 - **Keep a reference beside your work.** Leave multiple images above other windows, move them where you need them, and zoom in on a detail.
 - **Explain the important part.** Use four focused annotation tools: pen, arrow, rectangle, and inline text, with undo and redo.
 - **Skip retyping.** Select a region and press **O** to copy recognized text, or use OCR from a pin's toolbar.
-- **Translate beside your work.** Press **Ctrl+Shift+1**, select text and release. A milk-white translucent card appears while recognition runs, then shows the result in place. Words and known short phrases use an offline dictionary; sentences use free online translation. The card includes pronunciation, copy and close controls.
+- **Translate beside your work.** **Tap Control twice** (or press **Ctrl+Shift+1**), select text and release. A milk-white translucent card appears while recognition runs, then shows the result in place. Words and known short phrases use an offline dictionary; sentences use free online translation. The card includes pronunciation, copy and close controls.
 - **Sample a precise color.** Use the capture magnifier and arrow keys to position the cursor one pixel at a time. Press **C** to copy the color; **Shift** switches HEX and RGB.
 - **Make the controls yours.** Bind capture, paste, restore, quick OCR and translation to a key combination, a function key, or a mouse side-button gesture. A capture hint panel shows the actions available in the current mode.
 
@@ -62,7 +62,7 @@ To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The r
 | macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.8/FastPin-macOS.dmg) | macOS 14 or newer |
 | Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.8/FastPin-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
 
-**macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection and mouse shortcuts also use Accessibility permission. This preview is not notarized. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
+**macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection, mouse shortcuts and double-tap Control also use Accessibility permission. This preview is not notarized. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
 
 **Windows:** extract the ZIP into a permanent folder and enable Developer Mode. Open PowerShell in the extracted folder and register the app:
 
@@ -80,7 +80,7 @@ The [illustrated Quick Start](GETTING_STARTED.md) walks through installation, pe
 | --- | --- |
 | Capture a screenshot | Ctrl+Shift+2 |
 | Copy text from screen | Ctrl+Shift+5 |
-| Select text to translate | Ctrl+Shift+1 |
+| Select text to translate | Control, Control (double tap) or Ctrl+Shift+1 |
 | Pin an image from the clipboard | Ctrl+Shift+3 |
 | Restore the last image | Ctrl+Shift+4 |
 | Switch Window / Element detection | Tab while capturing |

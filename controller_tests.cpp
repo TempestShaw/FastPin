@@ -52,6 +52,21 @@ private slots:
         QSettings settings; Hotkeys::save(settings, bindings);
     }
 
+    void doubleControlPreferenceIsSaved()
+    {
+        Controller panel;
+        QCheckBox *toggle = nullptr;
+        for (auto *box : panel.findChildren<QCheckBox *>()) if (box->text() == "Double-tap Control to translate") toggle = box;
+        QVERIFY(toggle); QVERIFY(toggle->isChecked());
+        toggle->setChecked(false);
+        QCOMPARE(QSettings().value(doubleControlSetting).toBool(), false);
+        toggle->setChecked(true);
+        QCOMPARE(QSettings().value(doubleControlSetting).toBool(), true);
+        // While a shortcut is being recorded, global triggers must stay quiet.
+        panel.hotkeys.suspend(); QVERIFY(panel.hotkeys.isSuspended());
+        QVERIFY(panel.hotkeys.apply(panel.hotkeys.bindings()).isEmpty()); QVERIFY(!panel.hotkeys.isSuspended());
+    }
+
     void inactiveFieldFocusKeepsGlobalShortcuts()
     {
         Controller panel;

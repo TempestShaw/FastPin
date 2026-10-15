@@ -1,6 +1,8 @@
 #include "platform.h"
+#include "doubletap.h"
 
 #include <QElapsedTimer>
+#include <QCoreApplication>
 #include <QScreen>
 #include <QStringList>
 #include <windows.h>
@@ -17,6 +19,59 @@
 #include <sapi.h>
 
 using Microsoft::WRL::ComPtr;
+
+namespace {
+struct DoubleControlWatch {
+    inline static DoubleControlWatch *active = nullptr;
+    DoubleTapDetector detector;
+    std::function<void()> triggered;
+    HHOOK keyboard = nullptr, mouse = nullptr;
+    void feed(DoubleTapDetector::Input input, DWORD time)
+    {
+        if (detector.feed(input, time)) QMetaObject::invokeMethod(qApp, triggered, Qt::QueuedConnection);
+    }
+};
+
+LRESULT CALLBACK doubleControlKeyboard(int code, WPARAM message, LPARAM data)
+{
+    const auto *key = reinterpret_cast<KBDLLHOOKSTRUCT *>(data);
+    if (code == HC_ACTION && DoubleControlWatch::active && !(key->flags & LLKHF_INJECTED)) {
+        using Input = DoubleTapDetector::Input;
+        const bool down = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
+        const bool control = key->vkCode == VK_LCONTROL || key->vkCode == VK_RCONTROL;
+        const bool chord = (GetAsyncKeyState(VK_SHIFT) | GetAsyncKeyState(VK_MENU) |
+                            GetAsyncKeyState(VK_LWIN) | GetAsyncKeyState(VK_RWIN)) & 0x8000;
+        if (control && !chord) DoubleControlWatch::active->feed(down ? Input::ControlDown : Input::ControlUp, key->time);
+        else if (down) DoubleControlWatch::active->feed(Input::Other, key->time);
+    }
+    return CallNextHookEx(nullptr, code, message, data);
+}
+
+LRESULT CALLBACK doubleControlMouse(int code, WPARAM message, LPARAM data)
+{
+    const bool press = message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN || message == WM_MBUTTONDOWN || message == WM_XBUTTONDOWN;
+    if (code == HC_ACTION && press && DoubleControlWatch::active)
+        DoubleControlWatch::active->feed(DoubleTapDetector::Input::Other, reinterpret_cast<MSLLHOOKSTRUCT *>(data)->time);
+    return CallNextHookEx(nullptr, code, message, data);
+}
+}
+
+std::function<void()> watchDoubleControl(std::function<void()> triggered)
+{
+    if (DoubleControlWatch::active) return {};
+    auto *watch = new DoubleControlWatch{{}, std::move(triggered)};
+    watch->keyboard = SetWindowsHookExW(WH_KEYBOARD_LL, doubleControlKeyboard, GetModuleHandleW(nullptr), 0);
+    watch->mouse = SetWindowsHookExW(WH_MOUSE_LL, doubleControlMouse, GetModuleHandleW(nullptr), 0);
+    auto stop = [watch] {
+        if (watch->keyboard) UnhookWindowsHookEx(watch->keyboard);
+        if (watch->mouse) UnhookWindowsHookEx(watch->mouse);
+        if (DoubleControlWatch::active == watch) DoubleControlWatch::active = nullptr;
+        delete watch;
+    };
+    if (!watch->keyboard) { stop(); return {}; }
+    DoubleControlWatch::active = watch;
+    return stop;
+}
 
 std::function<void()> pronounceText(const QString &text)
 {

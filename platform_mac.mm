@@ -1,6 +1,8 @@
 #include "platform.h"
+#include "doubletap.h"
 #include "translation.h"
 
+#include <QCoreApplication>
 #include <QScreen>
 #include <QWidget>
 #include <unistd.h>
@@ -129,6 +131,35 @@ bool elementAccessAllowed(bool prompt)
 {
     NSDictionary *options = @{(__bridge NSString *)kAXTrustedCheckOptionPrompt: @(prompt)};
     return AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
+}
+
+static DoubleTapDetector::Input doubleTapInput(NSEvent *event)
+{
+    using Input = DoubleTapDetector::Input;
+    constexpr unsigned short leftControl = 59, rightControl = 62; // kVK_Control, kVK_RightControl
+    if (event.type != NSEventTypeFlagsChanged) return Input::Other;
+    const auto flags = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
+    const bool control = event.keyCode == leftControl || event.keyCode == rightControl;
+    const bool chord = flags & (NSEventModifierFlagShift | NSEventModifierFlagOption | NSEventModifierFlagCommand);
+    if (!control || chord) return Input::Other;
+    return (flags & NSEventModifierFlagControl) ? Input::ControlDown : Input::ControlUp;
+}
+
+std::function<void()> watchDoubleControl(std::function<void()> triggered)
+{
+    // Global key monitors receive nothing until FastPin is trusted for Accessibility.
+    if (QGuiApplication::platformName() != "cocoa" || !elementAccessAllowed(false)) return {};
+    auto detector = std::make_shared<DoubleTapDetector>();
+    auto handle = ^(NSEvent *event) {
+        if (detector->feed(doubleTapInput(event), qint64(event.timestamp * 1000)))
+            QMetaObject::invokeMethod(qApp, triggered, Qt::QueuedConnection);
+    };
+    const NSEventMask mask = NSEventMaskFlagsChanged | NSEventMaskKeyDown | NSEventMaskLeftMouseDown |
+                             NSEventMaskRightMouseDown | NSEventMaskOtherMouseDown;
+    // The global monitor sees other apps; the local one sees FastPin's own windows.
+    id global = [NSEvent addGlobalMonitorForEventsMatchingMask:mask handler:handle];
+    id local = [NSEvent addLocalMonitorForEventsMatchingMask:mask handler:^NSEvent *(NSEvent *event) { handle(event); return event; }];
+    return [global, local] { [NSEvent removeMonitor:global]; [NSEvent removeMonitor:local]; };
 }
 
 ElementResult desktopElementAt(DesktopWindow window, QPointF point)

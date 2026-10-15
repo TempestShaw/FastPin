@@ -20,7 +20,8 @@ public:
     static QString validate(const Bindings &bindings);
     QString apply(const Bindings &bindings);
     void enablePinTools(bool enabled);
-    void suspend() { unregisterKeys(); }
+    void suspend() { unregisterKeys(); suspended = true; }
+    bool isSuspended() const { return suspended; } // While a shortcut is being recorded.
     const Bindings &bindings() const { return current; }
     bool nativeEventFilter(const QByteArray &, void *, qintptr *) override;
 signals:
@@ -41,6 +42,7 @@ private:
     Bindings current;
     std::array<bool, hotkeyActionCount + 1> registered{}; // Actions plus the pin-tools Space slot.
     bool pinToolsPressed = false;
+    bool suspended = false;
     MouseGesture gesture;
     quint64 generation = 0;
 };

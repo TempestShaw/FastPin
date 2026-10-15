@@ -2,6 +2,7 @@
 #include "hotkey.h"
 #include "history.h"
 #include "translationcard.h"
+#include "doubletap.h"
 #include <QApplication>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -163,6 +164,27 @@ private slots:
         [remember performClick:nil];
         QVERIFY(history.enabled);
         QCOMPARE(settings.value("recovery/enabled").toBool(), true);
+    }
+
+    void doubleControlToggleIsSavedAndReported()
+    {
+        Hotkeys hotkeys; QVERIFY(hotkeys.apply(bindings).isEmpty());
+        QSettings settings; settings.remove(doubleControlSetting);
+        CaptureHistory history(directory.filePath("double-control-image.png"));
+        QList<bool> reported;
+        MacSettings preferences(hotkeys, settings, history, [] {}, [] {}, [&](bool enabled) { reported << enabled; });
+        preferences.show(MacSettings::Shortcuts);
+        NSWindow *window = nil;
+        for (NSWindow *candidate in NSApp.windows) if ([candidate.title isEqualToString:@"FastPin Settings"] && candidate.visible) window = candidate;
+        QVERIFY(window);
+        auto *toggle = buttonWithLabel(window.contentView, @"Double-tap Control to translate");
+        QVERIFY(toggle);
+        QCOMPARE(toggle.state, NSControlStateValueOn); // On by default.
+        [toggle performClick:nil];
+        QCOMPARE(settings.value(doubleControlSetting).toBool(), false);
+        [toggle performClick:nil];
+        QCOMPARE(settings.value(doubleControlSetting).toBool(), true);
+        QCOMPARE(reported, (QList<bool>{false, true}));
     }
 };
 QTEST_MAIN(MacSettingsTests)

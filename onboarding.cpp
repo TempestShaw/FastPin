@@ -141,7 +141,7 @@ void Onboarding::refreshPermissions()
     }
     if (elementStatus) {
         const bool allowed = elementAccessAllowed(false);
-        elementStatus->setText(allowed ? "Element detection is ready." : "For UI elements and mouse shortcuts. Window selection works without it.");
+        elementStatus->setText(allowed ? "Element detection, mouse shortcuts and double-tap Control are ready." : "For UI elements, mouse shortcuts and double-tap Control. Window selection works without it.");
         elementGrant->setEnabled(!allowed); elementGrant->setText(allowed ? "Allowed" : "Allow…");
     }
 }

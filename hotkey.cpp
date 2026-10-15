@@ -359,6 +359,7 @@ QString Hotkeys::apply(const Bindings &bindings)
     if (const auto error = validate(bindings); !error.isEmpty()) return error;
     const auto previous = current;
     unregisterKeys();
+    suspended = false;
     QString error;
     for (int i = 0; i < hotkeyActionCount; ++i) {
         if (registerKey(i, bindings[i].key)) continue;
