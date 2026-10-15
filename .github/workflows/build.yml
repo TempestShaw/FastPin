@@ -23,7 +23,11 @@ jobs:
           version: '6.8.3'
           cache: true
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+        run: |
+          version=0.1.0
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then version="${GITHUB_REF_NAME#v}"; fi
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFASTPIN_VERSION="$version" -DFASTPIN_BUILD_VERSION="${{ github.run_number }}"
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test
@@ -37,6 +41,10 @@ jobs:
       - name: Verify Windows deployed runtime
         if: runner.os == 'Windows'
         run: python verify-windows-package.py build/package
+      - name: Archive Windows development layout
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path build/package/* -DestinationPath build/FastPin-Windows-x64.zip
       - name: Build macOS DMG (ad-hoc development artifact)
         if: runner.os == 'macOS'
         shell: bash
@@ -45,6 +53,15 @@ jobs:
           build/dmg-tools/bin/python -m pip install dmgbuild==1.6.7
           codesign --force --deep --sign - build/package/FastPin.app
           FASTPIN_DMG_PYTHON="$PWD/build/dmg-tools/bin/python" ./package-dmg.sh build/package/FastPin.app build/FastPin-macOS.dmg
+          ditto -c -k --sequesterRsrc --keepParent build/package/FastPin.app build/FastPin-macOS-arm64.zip
+      - name: Sign macOS update feed
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          [[ -n "$SPARKLE_PRIVATE_KEY" ]] || { echo 'Release publication requires SPARKLE_PRIVATE_KEY.' >&2; exit 1; }
+          ./make-update-feed.sh build build/FastPin-macOS-arm64.zip "$GITHUB_REF_NAME" build/update-feed
       - uses: actions/upload-artifact@v4
         with:
           name: FastPin-${{ matrix.os }}
@@ -52,3 +69,42 @@ jobs:
             build/package/
             build/*.msix
             build/*.dmg
+            build/*.zip
+            build/update-feed/appcast.xml
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: FastPin-*
+          path: build/release
+      - name: Publish packages and signed feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mac=build/release/FastPin-macos-14
+          windows=build/release/FastPin-windows-2022
+          args=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then args+=(--prerelease); fi
+          (cd "$mac" && sha256sum FastPin-macOS-arm64.zip FastPin-macOS.dmg) > build/release/SHA256SUMS.txt
+          (cd "$windows" && sha256sum FastPin-Windows-x64.zip FastPin-x64.msix) >> build/release/SHA256SUMS.txt
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "FastPin ${GITHUB_REF_NAME#v}" --generate-notes "${args[@]}" \
+            "$mac/FastPin-macOS-arm64.zip" "$mac/FastPin-macOS.dmg" "$mac/update-feed/appcast.xml" \
+            "$windows/FastPin-Windows-x64.zip" "$windows/FastPin-x64.msix" build/release/SHA256SUMS.txt
+          cp "$mac/update-feed/appcast.xml" updates/appcast.xml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add updates/appcast.xml
+          if ! git diff --cached --quiet; then
+            git commit -m "Update macOS feed for $GITHUB_REF_NAME"
+            git push origin HEAD:main
+          fi

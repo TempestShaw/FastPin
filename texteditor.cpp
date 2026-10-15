@@ -20,6 +20,7 @@ InlineTextEditor::InlineTextEditor(QWidget *parent) : QPlainTextEdit(parent)
 void InlineTextEditor::begin(QPointF point, QRectF bounds, QColor color, qreal fontSize)
 {
     finish();
+    existing = false;
     area = bounds.toAlignedRect().intersected(parentWidget()->rect());
     QFont textFont; textFont.setPixelSize(qMax(1, qRound(fontSize))); setFont(textFont);
     setStyleSheet(QString("QPlainTextEdit { color: %1; background: rgba(24,28,36,35); border: 1px dashed #287cf4; padding: 3px; selection-background-color: #287cf4; }").arg(color.name()));
@@ -29,6 +30,15 @@ void InlineTextEditor::begin(QPointF point, QRectF bounds, QColor color, qreal f
          qBound(area.top(), qRound(point.y()), area.bottom() - minHeight + 1));
     fitText();
     show(); raise(); setFocus(Qt::MouseFocusReason);
+}
+
+void InlineTextEditor::edit(QString text, QPointF baseline, QRectF bounds, QColor color, qreal fontSize)
+{
+    begin(baseline, bounds, color, fontSize);
+    existing = true;
+    move((baseline - QPointF(viewport()->pos()) - QPointF(0, QFontMetricsF(font()).ascent())).toPoint());
+    setPlainText(text);
+    moveCursor(QTextCursor::End);
 }
 
 void InlineTextEditor::fitText()
@@ -46,7 +56,8 @@ void InlineTextEditor::finish(bool accept)
     const QString text = toPlainText();
     const QPointF baseline = QPointF(pos() + viewport()->pos()) + QPointF(0, QFontMetricsF(font()).ascent());
     hide();
-    if (accept && !text.trimmed().isEmpty()) emit submitted(text, baseline);
+    if (accept && (existing || !text.trimmed().isEmpty())) emit submitted(text, baseline);
+    emit finished();
 }
 
 void InlineTextEditor::keyPressEvent(QKeyEvent *event)

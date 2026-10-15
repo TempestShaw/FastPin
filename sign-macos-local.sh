@@ -63,6 +63,8 @@ sign() {
 }
 # Sign nested libraries before their containing frameworks and app. No --deep signing.
 while IFS= read -r -d '' library; do sign "$library"; done < <(find "$app/Contents" -type f -name '*.dylib' -print0)
+while IFS= read -r -d '' helper; do sign "$helper"; done < <(find "$app/Contents/Frameworks" -type f -name Autoupdate -print0)
+while IFS= read -r -d '' helper; do sign "$helper"; done < <(find "$app/Contents/Frameworks" -depth -type d \( -name '*.xpc' -o -name '*.app' \) -print0)
 while IFS= read -r -d '' framework; do sign "$framework"; done < <(find "$app/Contents/Frameworks" -depth -type d -name '*.framework' -print0)
 requirement="designated => identifier \"$bundle_id\" and anchor H\"$fingerprint\""
 sign --requirements "=$requirement" "$app"

@@ -15,6 +15,7 @@ struct Shortcut {
     QString toString(QKeySequence::SequenceFormat format = QKeySequence::NativeText) const;
     static Shortcut fromString(const QString &text);
     static Shortcut fromKeyEvent(const QKeyEvent *event);
+    static Shortcut fromNativeKey(quint32 virtualKey, Qt::KeyboardModifiers modifiers);
     bool operator==(const Shortcut &other) const { return key == other.key && buttons == other.buttons && modifiers == other.modifiers; }
 };
 
@@ -24,7 +25,7 @@ struct MouseGesture {
     Qt::MouseButtons held{}, seen{};
     Qt::KeyboardModifiers modifiers{};
     bool owned = false;
-    Result event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods, const std::array<Shortcut, 4> &bindings);
+    Result event(Qt::MouseButton button, bool down, Qt::KeyboardModifiers mods, const std::array<Shortcut, 5> &bindings);
 };
 
 class ShortcutEdit : public QLineEdit {

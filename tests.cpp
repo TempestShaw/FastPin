@@ -4,10 +4,13 @@
 #include "hotkey.h"
 #include "history.h"
 #include "onboarding.h"
+#include "translation.h"
+#include "translationcard.h"
 #include <QStackedWidget>
 #include <QTemporaryDir>
 #include <QFileInfo>
 #include <QApplication>
+#include <QLabel>
 #include <QAction>
 #include <QClipboard>
 #include <QPainter>
@@ -15,8 +18,10 @@
 #include <QPlainTextEdit>
 #include <QScrollBar>
 #include <QSignalSpy>
+#include <QScreen>
 #include <QToolButton>
 #include <QPushButton>
+#include <QUrlQuery>
 #include <QtTest>
 #include <future>
 #ifdef Q_OS_WIN
@@ -27,6 +32,96 @@
 class NativeTests : public QObject {
     Q_OBJECT
 private slots:
+    void offlineDictionaryAndOnlineTranslationRouting()
+    {
+        QVERIFY(offlineDefinition(" Bank. ").contains(QString::fromUtf8("銀行")));
+        QVERIFY(!offlineDefinition("bank").contains('['));
+        QVERIFY(!offlineDefinition("bank").contains("bank", Qt::CaseInsensitive));
+        QVERIFY(!offlineDefinition("bank").contains('\n'));
+        QVERIFY(offlineDefinition("bank").contains(QString::fromUtf8("，")));
+        QVERIFY(!offlineDefinition(QString::fromUtf8("電腦")).contains('['));
+        QVERIFY(offlineDefinition("HELLO").contains(QString::fromUtf8("哈囉")));
+        QVERIFY(offlineDefinition(QString::fromUtf8("電腦")).contains("computer"));
+        QVERIFY(offlineDefinition(QString::fromUtf8("电脑")).contains("computer"));
+        QVERIFY(!offlineDefinition("thank you").isEmpty());
+        QVERIFY(offlineDefinition("fastpinmadeupword").isEmpty());
+        QVERIFY(offlineDefinition("A whole sentence that has no dictionary entry.").isEmpty());
+        QVERIFY(offlineDefinition("").isEmpty());
+        QVERIFY(isDictionaryWord("fastpinmadeupword"));
+        QVERIFY(isDictionaryWord(QString::fromUtf8("詞庫")));
+        QVERIFY(!isDictionaryWord("Where is the bank?"));
+        QVERIFY(!isDictionaryWord(QString::fromUtf8("這是一段中文。")));
+        const QString sentence = "Hello & goodbye? A+B #test\nSecond line.";
+        const auto url = onlineTranslationUrl(sentence);
+        QCOMPARE(url.scheme(), QString("https")); QCOMPARE(url.host(), QString("api.mymemory.translated.net"));
+        const QUrlQuery query(url);
+        QCOMPARE(query.queryItemValue("q", QUrl::FullyDecoded), sentence);
+        QCOMPARE(query.queryItemValue("langpair", QUrl::FullyDecoded), QString("en|zh-TW"));
+        QCOMPARE(QUrlQuery(onlineTranslationUrl(QString::fromUtf8("這是一段中文。"))).queryItemValue("langpair", QUrl::FullyDecoded), QString("zh-TW|en"));
+        const auto reply = parseTranslationReply(R"({"responseStatus":200,"responseData":{"translatedText":"A &amp; B"}})");
+        QCOMPARE(reply.text, QString("A & B")); QVERIFY(reply.error.isEmpty());
+        QVERIFY(!parseTranslationReply("not json").error.isEmpty());
+        QVERIFY(!parseTranslationReply(R"({"responseStatus":200,"responseData":{"translatedText":""}})").error.isEmpty());
+        QVERIFY(parseTranslationReply(R"({"responseStatus":"429","quotaFinished":true})").error.contains("quota"));
+    }
+
+    void translationCardStaysNearPointerWithoutFocusAndCloses()
+    {
+        QWidget original; original.show(); original.activateWindow(); original.setFocus();
+        auto *card = new TranslationCard("bank"); QPointer<TranslationCard> pointer(card);
+        const QRect area = QGuiApplication::primaryScreen()->availableGeometry();
+        card->showAt(area.bottomRight() - QPoint(2, 2));
+        QVERIFY(card->isVisible()); QVERIFY(card->width() <= 360); QVERIFY(card->height() <= 250);
+        QVERIFY(area.contains(card->geometry()));
+        QVERIFY(card->windowFlags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(card->windowFlags().testFlag(Qt::WindowDoesNotAcceptFocus));
+        QVERIFY(card->testAttribute(Qt::WA_ShowWithoutActivating));
+        QVERIFY(card->findChild<QPlainTextEdit *>("translationDefinition")->toPlainText().contains(QString::fromUtf8("銀行")));
+        QVERIFY(card->findChild<QToolButton *>("pronounce"));
+        card->findChild<QToolButton *>("closeTranslation")->click();
+        QTRY_VERIFY(pointer.isNull()); QVERIFY(original.isVisible());
+        auto *oversized = new TranslationCard(QString(501, 'x'));
+        QVERIFY(oversized->findChild<QPlainTextEdit *>("translationDefinition")->toPlainText().contains("shorter"));
+        oversized->close();
+    }
+
+    void annotationHistoryKeepsEditsAndBranchesInOrder()
+    {
+        AnnotationLayer layer;
+        Annotation first; first.tool = Tool::Text; first.start = {20, 40}; first.text = "First";
+        layer.add(first); layer.replaceText(0, "Edited");
+        Annotation second = first; second.start = {20, 100}; second.text = "Second"; layer.add(second);
+        layer.undo(); layer.undo(); QCOMPARE(layer.at(0).text, QString("First"));
+        layer.redo(); layer.redo(); QCOMPARE(layer.at(0).text, QString("Edited")); QCOMPARE(layer.at(1).text, QString("Second"));
+        layer.undo(); layer.replaceText(0, "New branch");
+        QVERIFY(!layer.canRedo()); QCOMPARE(layer.textAt({20, 95}), qsizetype(-1));
+        layer.undo(); QCOMPARE(layer.at(0).text, QString("Edited"));
+        layer.undo(); QCOMPARE(layer.at(0).text, QString("First"));
+        layer.undo(); QVERIFY(!layer.canUndo()); QCOMPARE(layer.textAt({20, 35}), qsizetype(-1));
+        layer.redo(); layer.redo(); layer.redo(); QCOMPARE(layer.at(0).text, QString("New branch"));
+    }
+
+    void translationActionsLeaveOcrShortcutIntact()
+    {
+        QImage image(600, 350, QImage::Format_RGB32); image.fill(Qt::white);
+        PinWindow pin(image);
+        QSignalSpy pinTranslation(&pin, &PinWindow::translateRequested), pinOcr(&pin, &PinWindow::ocrRequested);
+        QTest::keyClick(&pin, Qt::Key_O, Qt::ShiftModifier);
+        QCOMPARE(pinTranslation.count(), 1); QCOMPARE(pinOcr.count(), 0);
+        QTest::keyClick(&pin, Qt::Key_O);
+        QCOMPARE(pinOcr.count(), 1);
+        pin.findChild<QToolButton *>("translate")->click(); QCOMPARE(pinTranslation.count(), 2);
+        CaptureOverlay capture({image, {0, 0, 600, 350}, 1}, {});
+        capture.show();
+        QTest::mousePress(&capture, Qt::LeftButton, {}, {20, 20});
+        QTest::mouseMove(&capture, {400, 220}); QTest::mouseRelease(&capture, Qt::LeftButton, {}, {400, 220});
+        QSignalSpy captureTranslation(&capture, &CaptureOverlay::translateRequested), captureOcr(&capture, &CaptureOverlay::ocrRequested);
+        QTest::keyClick(&capture, Qt::Key_O, Qt::ShiftModifier);
+        QCOMPARE(captureTranslation.count(), 1); QCOMPARE(captureOcr.count(), 0);
+        QTest::keyClick(&capture, Qt::Key_O); QCOMPARE(captureOcr.count(), 1);
+        capture.findChild<QToolButton *>("translate")->click(); QCOMPARE(captureTranslation.count(), 2);
+    }
+
     void onboardingAppearsOnceAndCanBeReopened()
     {
         QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
@@ -173,6 +268,32 @@ private slots:
         bindings[1] = QKeySequence(Qt::Key_X); QVERIFY(!Hotkeys::validate(bindings).isEmpty());
         bindings[1] = QKeySequence("Ctrl+K, Ctrl+C"); QVERIFY(!Hotkeys::validate(bindings).isEmpty());
         reloaded.setValue("shortcuts/0", "Ctrl+K, Ctrl+C"); QCOMPARE(Hotkeys::load(reloaded), Hotkeys::defaults());
+    }
+
+    void dictionaryShortcutMigratesLegacyPasteBinding()
+    {
+        const auto defaults = Hotkeys::defaults();
+        QCOMPARE(defaults.size(), size_t(5));
+        const auto control = defaults[0].key[0].keyboardModifiers() & ~Qt::ShiftModifier;
+        const Shortcut dictionary(QKeySequence(QKeyCombination(control, Qt::Key_D)));
+        QCOMPARE(defaults[4], dictionary);
+        QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
+        const Shortcut capture(QKeySequence(QKeyCombination(control, Qt::Key_S)));
+        const Shortcut replay(QKeySequence(QKeyCombination(control, Qt::Key_F)));
+        settings.setValue("shortcuts/0", capture.toString(QKeySequence::PortableText));
+        settings.setValue("shortcuts/1", dictionary.toString(QKeySequence::PortableText));
+        settings.setValue("shortcuts/2", replay.toString(QKeySequence::PortableText));
+        auto loaded = Hotkeys::load(settings);
+        QCOMPARE(loaded[0], capture); QCOMPARE(loaded[2], replay);
+        QCOMPARE(loaded[1], defaults[1]); QCOMPARE(loaded[4], dictionary);
+        Hotkeys::save(settings, loaded); QCOMPARE(Hotkeys::load(settings), loaded);
+        loaded[4] = Shortcut(Qt::ForwardButton, Qt::ShiftModifier);
+        Hotkeys::save(settings, loaded); QCOMPARE(Hotkeys::load(settings), loaded);
+        settings.clear();
+        settings.setValue("shortcuts/0", defaults[1].toString(QKeySequence::PortableText));
+        settings.setValue("shortcuts/1", dictionary.toString(QKeySequence::PortableText));
+        loaded = Hotkeys::load(settings);
+        QCOMPARE(loaded[0], defaults[1]); QVERIFY(loaded[1].isEmpty()); QCOMPARE(loaded[4], dictionary);
     }
 
     void quickOcrBindingPreservesExistingPreferences()
@@ -379,6 +500,56 @@ private slots:
         QVERIFY(editor.viewport()->height() >= editor.fontMetrics().height());
     }
 
+    void completedPinTextCanBeReedited()
+    {
+        QImage source(800, 400, QImage::Format_RGB32); source.fill(Qt::white);
+        PinWindow pin(source); pin.show();
+        QTest::keyClick(&pin, Qt::Key_T);
+        QTest::mouseClick(&pin, Qt::LeftButton, {}, {40, 40});
+        auto *editor = pin.findChild<InlineTextEditor *>(); QVERIFY(editor);
+        editor->setPlainText("Original text\nSecond line");
+        QTest::keyClick(editor, Qt::Key_Return);
+        const QImage original = pin.exportedImage();
+        pin.setZoom(0.5);
+        QTest::mouseClick(&pin, Qt::LeftButton, {}, {30, 25});
+        QVERIFY(editor->isVisible());
+        QCOMPARE(editor->toPlainText(), QString("Original text\nSecond line"));
+        QCOMPARE(editor->font().pixelSize(), 10);
+        editor->setPlainText("Edited text"); QTest::keyClick(editor, Qt::Key_Return);
+        const QImage edited = pin.exportedImage(); QVERIFY(edited != original);
+        pin.undo(); QCOMPARE(pin.exportedImage(), original);
+        pin.redo(); QCOMPARE(pin.exportedImage(), edited);
+        QTest::mouseClick(&pin, Qt::LeftButton, {}, {30, 25});
+        QCOMPARE(editor->toPlainText(), QString("Edited text"));
+        editor->setPlainText("Canceled edit"); QTest::keyClick(editor, Qt::Key_Escape);
+        QCOMPARE(pin.exportedImage(), edited);
+        QTest::mouseClick(&pin, Qt::LeftButton, {}, {30, 25});
+        editor->clear(); QTest::keyClick(editor, Qt::Key_Return);
+        QCOMPARE(pin.exportedImage(), source);
+        pin.undo(); QCOMPARE(pin.exportedImage(), edited);
+    }
+
+    void completedCaptureTextCanBeReedited()
+    {
+        ScreenFrame frame{QImage(1200, 700, QImage::Format_RGB32), QRect(0, 0, 600, 350), 2};
+        frame.image.fill(Qt::white);
+        CaptureOverlay overlay(frame); overlay.show();
+        QTest::mousePress(&overlay, Qt::LeftButton, {}, {20, 20});
+        QTest::mouseMove(&overlay, {500, 250});
+        QTest::mouseRelease(&overlay, Qt::LeftButton, {}, {500, 250});
+        QTest::keyClick(&overlay, Qt::Key_T);
+        QTest::mouseClick(&overlay, Qt::LeftButton, {}, {60, 60});
+        auto *editor = overlay.findChild<InlineTextEditor *>(); QVERIFY(editor);
+        editor->setPlainText(QString::fromUtf8("原始文字")); QTest::keyClick(editor, Qt::Key_Return);
+        const QImage original = overlay.selectedImage();
+        QTest::mouseClick(&overlay, Qt::LeftButton, {}, {70, 70});
+        QCOMPARE(editor->toPlainText(), QString::fromUtf8("原始文字"));
+        editor->setPlainText(QString::fromUtf8("重新編輯\nSecond line")); QTest::keyClick(editor, Qt::Key_Return);
+        const QImage edited = overlay.selectedImage(); QVERIFY(edited != original);
+        QTest::keySequence(&overlay, QKeySequence(QKeySequence::Undo)); QCOMPARE(overlay.selectedImage(), original);
+        QTest::keySequence(&overlay, QKeySequence(QKeySequence::Redo)); QCOMPARE(overlay.selectedImage(), edited);
+    }
+
     void delayedElementResultsFollowCurrentWindowAndMode()
     {
         ScreenFrame frame{QImage(800, 500, QImage::Format_RGB32), QRect(0, 0, 800, 500), 1};
@@ -421,6 +592,9 @@ private slots:
         QTest::mouseClick(&overlay, Qt::LeftButton, Qt::NoModifier, {60, 60});
         auto *editor = overlay.findChild<InlineTextEditor *>();
         QVERIFY(editor->isVisible()); QVERIFY(!editor->isWindow());
+        auto *hint = overlay.findChild<QLabel *>("captureShortcutHint"); QVERIFY(hint);
+        QVERIFY(hint->text().contains("Finish text"));
+        QVERIFY(!hint->text().contains("Pin to desktop"));
         QVERIFY(overlay.selection.rect.contains(editor->geometry()));
         editor->setPlainText(QString::fromUtf8("直接輸入\nSecond line"));
         editor->moveCursor(QTextCursor::End);
@@ -429,6 +603,7 @@ private slots:
         QCOMPARE(accepted.size(), 0);
         QTest::keyClick(editor, Qt::Key_Return);
         QCOMPARE(accepted.size(), 0); QCOMPARE(canceled.size(), 0);
+        QVERIFY(hint->text().contains("Pin to desktop"));
         const auto annotated = overlay.selectedImage();
         QCOMPARE(annotated.size(), QSize(960, 460));
         overlay.annotations.undo(); const auto blank = overlay.selectedImage();
@@ -528,6 +703,44 @@ private slots:
         QCOMPARE(accepted.size(), 3);
         QVERIFY(accepted[2][2].toBool());
         QCOMPARE(qvariant_cast<QImage>(accepted[2][0]), crop);
+    }
+
+    void captureHintsPassThroughAndStayOutOfExports()
+    {
+        ScreenFrame frame{QImage(1600, 1200, QImage::Format_RGB32), QRect(0, 0, 800, 600), 2};
+        frame.image.fill(QColor("#456789"));
+        CaptureOverlay overlay(frame); overlay.show();
+        QCoreApplication::processEvents();
+        auto *hint = overlay.findChild<QLabel *>("captureShortcutHint"); QVERIFY(hint);
+        QVERIFY(hint->isVisible());
+        QVERIFY(hint->testAttribute(Qt::WA_TransparentForMouseEvents));
+        QCOMPARE(hint->y() + hint->height(), overlay.height() - 16);
+        const QPoint start = hint->geometry().center(), end(650, 220);
+        QVERIFY(!overlay.childAt(start));
+        // Deliver through the window so a child that intercepts input would break selection.
+        QTest::mousePress(overlay.windowHandle(), Qt::LeftButton, Qt::NoModifier, start);
+        QTest::mouseMove(overlay.windowHandle(), end);
+        QTest::mouseRelease(overlay.windowHandle(), Qt::LeftButton, Qt::NoModifier, end);
+        const QRectF selected = QRectF(QPointF(start), QPointF(end)).normalized();
+        QCOMPARE(overlay.selection.rect, selected);
+        QVERIFY(hint->geometry().intersects(selected.toAlignedRect()));
+        QVERIFY(!overlay.toolbar->geometry().intersects(hint->geometry()));
+        QVERIFY(!overlay.magnifierRect(end).intersects(hint->geometry()));
+        QSignalSpy pinned(&overlay, &CaptureOverlay::accepted), ocr(&overlay, &CaptureOverlay::ocrRequested);
+        QTest::keyClick(&overlay, Qt::Key_Space);
+        QTest::keyClick(&overlay, Qt::Key_O);
+        QCOMPARE(pinned.size(), 1); QCOMPARE(ocr.size(), 1);
+        const QImage expected = frame.crop(selected);
+        QCOMPARE(qvariant_cast<QImage>(pinned[0][0]), expected);
+        QCOMPARE(qvariant_cast<QImage>(ocr[0][0]), expected);
+        overlay.resize(1000, 700);
+        QCoreApplication::processEvents();
+        QCOMPARE(hint->y() + hint->height(), overlay.height() - 16);
+        overlay.setGeometry(overlay.screen()->geometry());
+        QCoreApplication::processEvents();
+        const QRect available = overlay.screen()->availableGeometry().translated(-overlay.pos());
+        QVERIFY(available.contains(hint->geometry()));
+        QCOMPARE(hint->geometry().bottom(), available.bottom() - 16);
     }
 
     void toolbarAnnotationsKeepRetinaCropAndHistory()
@@ -663,12 +876,24 @@ private slots:
         QCOMPARE(qvariant_cast<QImage>(pinned[0][0]).size(), QSize(640, 480));
     }
 
-    void quickOcrCompletesOnReleaseWithoutPinOrToolbar()
+    void quickTextCaptureCompletesOnReleaseWithoutPinOrToolbar_data()
     {
+        QTest::addColumn<bool>("translate");
+        QTest::newRow("copy-text") << false;
+        QTest::newRow("dictionary") << true;
+    }
+
+    void quickTextCaptureCompletesOnReleaseWithoutPinOrToolbar()
+    {
+        QFETCH(bool, translate);
         ScreenFrame frame{QImage(640, 480, QImage::Format_RGB32), QRect(0, 0, 320, 240), 2};
         frame.image.fill(Qt::white);
-        CaptureOverlay overlay(frame); overlay.setQuickOcr(true); overlay.show();
-        QSignalSpy selected(&overlay, &CaptureOverlay::ocrRequested), pinned(&overlay, &CaptureOverlay::accepted);
+        CaptureOverlay overlay(frame); overlay.setMode(translate ? CaptureOverlay::Mode::Translate : CaptureOverlay::Mode::CopyText); overlay.show();
+        auto *hint = overlay.findChild<QLabel *>("captureShortcutHint"); QVERIFY(hint);
+        QVERIFY(hint->text().contains(translate ? "Dictionary / translate" : "Copy text (OCR)"));
+        QVERIFY(!hint->text().contains("Pin to desktop"));
+        QSignalSpy selected(&overlay, translate ? &CaptureOverlay::translateRequested : &CaptureOverlay::ocrRequested), pinned(&overlay, &CaptureOverlay::accepted);
+        QSignalSpy other(&overlay, translate ? &CaptureOverlay::ocrRequested : &CaptureOverlay::translateRequested);
         QSignalSpy canceled(&overlay, &CaptureOverlay::canceled);
         QTest::mouseClick(&overlay, Qt::LeftButton, {}, {20, 20});
         QCOMPARE(selected.size(), 0);
@@ -680,6 +905,7 @@ private slots:
         QCOMPARE(qvariant_cast<QImage>(selected[0][0]).size(), QSize(160, 120));
         QVERIFY(!overlay.toolbar->isVisible());
         QCOMPARE(pinned.size(), 0);
+        QCOMPARE(other.size(), 0);
         QTest::keyClick(&overlay, Qt::Key_Escape);
         QCOMPARE(canceled.size(), 1);
     }
@@ -689,7 +915,7 @@ private slots:
         ScreenFrame frame{QImage(320, 240, QImage::Format_RGB32), QRect(0, 0, 320, 240), 1};
         frame.image.fill(Qt::white);
         CaptureOverlay overlay(frame, {{QRectF(30, 40, 120, 90), 1, 0}});
-        overlay.setQuickOcr(true); overlay.show();
+        overlay.setMode(CaptureOverlay::Mode::CopyText); overlay.show();
         QSignalSpy selected(&overlay, &CaptureOverlay::ocrRequested);
         QTest::mouseClick(&overlay, Qt::LeftButton, {}, {80, 80});
         QCOMPARE(selected.size(), 1);

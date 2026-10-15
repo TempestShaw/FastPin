@@ -43,13 +43,43 @@ void Annotation::paint(QPainter &p) const
 
 void AnnotationLayer::add(Annotation annotation)
 {
-    annotations.erase(annotations.begin() + applied, annotations.end());
+    history.erase(history.begin() + applied, history.end());
+    history.append({annotations.size(), {}, annotation, true});
     annotations.append(std::move(annotation));
-    applied = annotations.size();
+    applied = history.size();
 }
 
-void AnnotationLayer::undo() { if (canUndo()) --applied; }
-void AnnotationLayer::redo() { if (canRedo()) ++applied; }
+qsizetype AnnotationLayer::textAt(QPointF point) const
+{
+    for (qsizetype i = annotations.size(); i-- > 0;)
+        if (annotations[i].tool == Tool::Text && !annotations[i].text.trimmed().isEmpty() && annotations[i].bounds().contains(point)) return i;
+    return -1;
+}
+
+void AnnotationLayer::replaceText(qsizetype index, QString text)
+{
+    if (annotations[index].text == text) return;
+    Annotation changed = annotations[index]; changed.text = std::move(text);
+    history.erase(history.begin() + applied, history.end());
+    history.append({index, annotations[index], changed, false});
+    annotations[index] = std::move(changed);
+    applied = history.size();
+}
+
+void AnnotationLayer::undo()
+{
+    if (!canUndo()) return;
+    const auto &change = history[--applied];
+    if (change.added) annotations.removeLast();
+    else annotations[change.index] = change.before;
+}
+void AnnotationLayer::redo()
+{
+    if (!canRedo()) return;
+    const auto &change = history[applied++];
+    if (change.added) annotations.append(change.after);
+    else annotations[change.index] = change.after;
+}
 
 void AnnotationLayer::begin(Tool tool, QPointF point, QColor color, qreal width)
 {
@@ -70,8 +100,8 @@ QRectF AnnotationLayer::drag(QPointF point)
 }
 
 void AnnotationLayer::end() { if (drawing) { drawing = false; add(std::move(pending)); } }
-void AnnotationLayer::paint(QPainter &p, bool includePending) const
+void AnnotationLayer::paint(QPainter &p, bool includePending, qsizetype hiddenText) const
 {
-    for (qsizetype i = 0; i < applied; ++i) annotations[i].paint(p);
+    for (qsizetype i = 0; i < annotations.size(); ++i) if (i != hiddenText) annotations[i].paint(p);
     if (includePending && drawing) pending.paint(p);
 }

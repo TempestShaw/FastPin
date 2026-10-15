@@ -6,7 +6,7 @@
 
 class QButtonGroup;
 class QToolButton;
-enum class EditorAction { Undo, Redo, Copy, Save, Pin, Ocr, Close };
+enum class EditorAction { Undo, Redo, Copy, Save, Pin, Ocr, Translate, Close };
 
 QIcon toolIcon(const QString &name, QColor color = QColor("#eef2f8"));
 

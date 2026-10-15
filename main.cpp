@@ -3,6 +3,13 @@
 #include "history.h"
 #include "pin.h"
 #include "onboarding.h"
+#include "translation.h"
+#include "translationcard.h"
+#if defined(Q_OS_MACOS) && !defined(FASTPIN_CONTROLLER_TEST)
+#define FASTPIN_NATIVE_SETTINGS
+#include "settings_mac.h"
+#include <QMenuBar>
+#endif
 
 #include <QApplication>
 #include <QClipboard>
@@ -55,7 +62,14 @@ public:
         header->addWidget(title); header->addStretch();
         auto *gettingStarted = new QPushButton("Getting started", this); header->addWidget(gettingStarted);
         connect(gettingStarted, &QPushButton::clicked, this, [this] { showGettingStarted(); }); layout->addLayout(header);
+#ifdef FASTPIN_NATIVE_SETTINGS
+        auto *settingsButton = new QPushButton("Settings…", this); header->addWidget(settingsButton);
+        connect(settingsButton, &QPushButton::clicked, this, [this] { showPreferences(); });
+#endif
         pages = new QTabWidget(this); pages->tabBar()->setElideMode(Qt::ElideNone);
+#ifdef FASTPIN_NATIVE_SETTINGS
+        pages->tabBar()->hide();
+#endif
         pages->setAccessibleName("Control panel pages"); layout->addWidget(pages);
         auto *home = new QWidget(this); auto *homeLayout = new QVBoxLayout(home);
         homeLayout->setContentsMargins(0, 18, 0, 0); homeLayout->setSpacing(12); pages->addTab(home, "Workspace");
@@ -81,7 +95,10 @@ public:
         connect(pasteCard.first, &QPushButton::clicked, this, [this] { paste(); });
         auto ocrCard = actionCard("ocr", "Copy text from screen", "Select a region to recognize and copy its text", false);
         ocrKeys = ocrCard.second; homeLayout->addWidget(ocrCard.first);
-        connect(ocrCard.first, &QPushButton::clicked, this, [this] { capture(true); });
+        connect(ocrCard.first, &QPushButton::clicked, this, [this] { capture(CaptureOverlay::Mode::CopyText); });
+        auto dictionaryCard = actionCard("translate", "Dictionary / translate", "Select text and release to see its translation", false);
+        translateKeys = dictionaryCard.second; homeLayout->addWidget(dictionaryCard.first);
+        connect(dictionaryCard.first, &QPushButton::clicked, this, [this] { capture(CaptureOverlay::Mode::Translate); });
         auto *recovery = new QFrame(this); recovery->setObjectName("card");
         auto *recoveryLayout = new QHBoxLayout(recovery); recoveryLayout->setContentsMargins(18, 16, 18, 16); recoveryLayout->setSpacing(16);
         preview = new QLabel(this); preview->setFixedSize(112, 70); preview->setAlignment(Qt::AlignCenter);
@@ -99,6 +116,8 @@ public:
         help->setObjectName("muted"); help->setStyleSheet("color:#596660; font-size:12px; padding-top:6px;"); homeLayout->addWidget(help);
         homeLayout->addStretch();
 
+        history.enabled = settings.value("recovery/enabled", true).toBool();
+#ifndef FASTPIN_NATIVE_SETTINGS
         auto *preferences = new QWidget(this); auto *preferencesLayout = new QVBoxLayout(preferences);
         preferencesLayout->setContentsMargins(0, 18, 0, 0); preferencesLayout->setSpacing(12); pages->addTab(preferences, "Preferences");
         preferencesLayout->addWidget(new QLabel("<span style='font-size:17px; font-weight:600'>Make it yours</span>", this));
@@ -109,8 +128,8 @@ public:
         hint->setObjectName("muted"); hint->setWordWrap(true); preferencesLayout->addWidget(hint);
         auto *shortcutCard = new QFrame(this); shortcutCard->setObjectName("card");
         auto *shortcutLayout = new QVBoxLayout(shortcutCard); shortcutLayout->setContentsMargins(18, 12, 18, 12);
-        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen"};
-        for (int i = 0; i < 4; ++i) {
+        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen", "Dictionary / translate"};
+        for (int i = 0; i < 5; ++i) {
             auto *row = new QHBoxLayout;
             row->addWidget(new QLabel(names[i], this), 1);
             edits[i] = new ShortcutEdit(this);
@@ -121,11 +140,11 @@ public:
         auto *defaults = new QPushButton("Reset to defaults", this); buttons->addWidget(defaults); buttons->addStretch();
         auto *apply = new QPushButton("Apply shortcuts", this); apply->setObjectName("applyShortcuts"); buttons->addWidget(apply); preferencesLayout->addLayout(buttons);
         connect(defaults, &QPushButton::clicked, this, [this] {
-            const auto bindings = Hotkeys::defaults(); for (int i = 0; i < 4; ++i) edits[i]->setBinding(bindings[i]);
+            const auto bindings = Hotkeys::defaults(); for (int i = 0; i < 5; ++i) edits[i]->setBinding(bindings[i]);
             settingsFeedback->setText("Defaults selected. Apply to activate them.");
         });
         connect(apply, &QPushButton::clicked, this, [this] {
-            Hotkeys::Bindings bindings; for (int i = 0; i < 4; ++i) bindings[i] = edits[i]->binding();
+            Hotkeys::Bindings bindings; for (int i = 0; i < 5; ++i) bindings[i] = edits[i]->binding();
             for (auto *edit : edits) edit->clearFocus();
             refreshShortcutRecording();
             const QString error = hotkeys.apply(bindings);
@@ -136,7 +155,7 @@ public:
         });
         settingsFeedback = new QLabel(this); settingsFeedback->setObjectName("muted"); settingsFeedback->setWordWrap(true); preferencesLayout->addWidget(settingsFeedback);
         remember = new QCheckBox("Remember the last image after closing or restarting", this);
-        history.enabled = settings.value("recovery/enabled", true).toBool(); remember->setChecked(history.enabled); preferencesLayout->addWidget(remember);
+        remember->setChecked(history.enabled); preferencesLayout->addWidget(remember);
         auto *privacy = new QLabel("One image is stored on this computer, including its annotations.\nTurning this off also deletes the saved image.", this);
         privacy->setObjectName("muted"); preferencesLayout->addWidget(privacy);
         auto *clear = new QPushButton("Clear saved image", this); preferencesLayout->addWidget(clear, 0, Qt::AlignLeft);
@@ -148,6 +167,7 @@ public:
             if (!enabled) { replayPending = false; history.clear(); } refreshHistory();
         });
         preferencesLayout->addStretch();
+#endif
         auto *footer = new QHBoxLayout;
         status = new QLabel("Ready · Close the panel to keep using the global shortcuts.", this);
         status->setWordWrap(true); status->setObjectName("muted"); footer->addWidget(status, 1);
@@ -157,24 +177,37 @@ public:
         snipAction = menu->addAction("Capture screenshot", this, [this] { capture(); });
         pasteAction = menu->addAction("Paste as pin", this, [this] { paste(); });
         replayAction = menu->addAction("Restore last image", this, [this] { replay(); });
-        ocrAction = menu->addAction("Copy text from screen", this, [this] { capture(true); });
+        ocrAction = menu->addAction("Copy text from screen", this, [this] { capture(CaptureOverlay::Mode::CopyText); });
+        translateAction = menu->addAction("Dictionary / translate", this, [this] { capture(CaptureOverlay::Mode::Translate); });
         menu->addSeparator();
         menu->addAction("Restore mouse input for all pins", this, [this] { restorePins(); });
         menu->addAction("Show controls…", this, [this] { pages->setCurrentIndex(0); show(); raise(); activateWindow(); });
-        menu->addAction("Preferences…", this, [this] { pages->setCurrentIndex(1); show(); raise(); activateWindow(); });
+        menu->addAction("Settings…", this, [this] { showPreferences(); });
+#ifdef FASTPIN_NATIVE_SETTINGS
+        menu->addAction("About FastPin…", this, [this] { nativeSettings->show(MacSettings::About); });
+        menu->addAction("Check for Updates…", this, [this] { nativeSettings->checkForUpdates(); });
+#endif
         menu->addAction("Getting started…", this, [this] { showGettingStarted(); });
-        menu->addSeparator(); menu->addAction("Quit", qApp, &QApplication::quit);
+        menu->addSeparator();
+#ifdef FASTPIN_NATIVE_SETTINGS
+        menu->addAction("Quit", this, [this] { nativeSettings->quit(); });
+#else
+        menu->addAction("Quit", qApp, &QApplication::quit);
+#endif
         tray.setContextMenu(menu);
         auto trayIcon = QIcon(":/brand/app-icon.png");
 #ifdef Q_OS_MACOS
         trayIcon = QIcon(":/brand/tray-icon.png"); trayIcon.setIsMask(true);
 #endif
         tray.setIcon(trayIcon); tray.setToolTip("FastPin"); tray.show();
+#ifndef Q_OS_MACOS
         connect(&tray, &QSystemTrayIcon::activated, this, [this](auto reason) { if (reason == QSystemTrayIcon::Trigger) show(); });
+#endif
         connect(&hotkeys, &Hotkeys::capture, this, [this] { capture(); });
         connect(&hotkeys, &Hotkeys::paste, this, [this] { paste(); });
         connect(&hotkeys, &Hotkeys::replay, this, [this] { replay(); });
-        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { capture(true); });
+        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { capture(CaptureOverlay::Mode::CopyText); });
+        connect(&hotkeys, &Hotkeys::quickTranslate, this, [this] { capture(CaptureOverlay::Mode::Translate); });
         connect(&history, &CaptureHistory::changed, this, [this](QString error) {
             if (isVisible()) refreshHistory();
             replayAction->setEnabled(history.available() || history.busy());
@@ -182,10 +215,20 @@ public:
             else if (replayPending && !history.busy()) { replayPending = false; replay(); }
         });
         connect(pages, &QTabWidget::currentChanged, this, [this] { refreshHistory(); });
+#ifdef FASTPIN_NATIVE_SETTINGS
+        nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
+            [this] { refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); });
+        applicationMenuBar = std::make_unique<QMenuBar>();
+        auto *applicationMenu = applicationMenuBar->addMenu("FastPin");
+        applicationMenu->addAction("About FastPin", this, [this] { nativeSettings->show(MacSettings::About); })->setMenuRole(QAction::AboutRole);
+        applicationMenu->addAction("Settings…", this, [this] { showPreferences(); })->setMenuRole(QAction::PreferencesRole);
+        applicationMenu->addAction("Check for Updates…", this, [this] { nativeSettings->checkForUpdates(); })->setMenuRole(QAction::ApplicationSpecificRole);
+        applicationMenu->addAction("Quit FastPin", this, [this] { nativeSettings->quit(); })->setMenuRole(QAction::QuitRole);
+#endif
         const auto bindings = Hotkeys::load(settings);
         const QString error = hotkeys.apply(bindings);
-        for (int i = 0; i < 4; ++i) edits[i]->setBinding(bindings[i]);
-        if (!error.isEmpty()) { settingsFeedback->setText(error); status->setText("A shortcut is unavailable. Change it in Preferences."); }
+        for (int i = 0; i < 5; ++i) if (edits[i]) edits[i]->setBinding(bindings[i]);
+        if (!error.isEmpty()) { setSettingsFeedback(error); status->setText("A shortcut is unavailable. Change it in Settings."); }
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
             QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
@@ -207,9 +250,18 @@ public:
         welcome->setAttribute(Qt::WA_DeleteOnClose);
         connect(welcome, &Onboarding::captureRequested, this, [this] { capture(); });
         connect(welcome, &Onboarding::preferencesRequested, this, [this] {
-            pages->setCurrentIndex(1); show(); raise(); activateWindow();
+            showPreferences();
         });
         if (!welcome->start(force)) { delete welcome; }
+    }
+
+    void showPreferences()
+    {
+#ifdef FASTPIN_NATIVE_SETTINGS
+        nativeSettings->show();
+#else
+        pages->setCurrentIndex(1); show(); raise(); activateWindow();
+#endif
     }
 
 protected:
@@ -223,7 +275,7 @@ protected:
         }
         if (event->type() == QEvent::FocusIn && isVisible() && isActiveWindow()) {
             auto *widget = qobject_cast<QWidget *>(object);
-            for (auto *edit : edits) if (widget && (widget == edit || edit->isAncestorOf(widget))) {
+            for (auto *edit : edits) if (edit && widget && (widget == edit || edit->isAncestorOf(widget))) {
                 hotkeys.suspend(); shortcutsRecording = true; break;
             }
         } else if (event->type() == QEvent::FocusOut && shortcutsRecording) {
@@ -235,24 +287,40 @@ protected:
     }
 
 private:
+    friend class ControllerTests;
+    void reportStatus(const QString &message, QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information)
+    {
+        status->setText(message);
+        if (!isVisible()) tray.showMessage("FastPin", message, icon, 2000);
+    }
+
+    void setSettingsFeedback(const QString &message)
+    {
+#ifdef FASTPIN_NATIVE_SETTINGS
+        nativeSettings->setFeedback(message);
+#else
+        settingsFeedback->setText(message);
+#endif
+    }
+
     void refreshShortcutRecording()
     {
         const auto *focus = QApplication::focusWidget();
         bool recording = false;
         if (isVisible() && isActiveWindow() && QGuiApplication::applicationState() == Qt::ApplicationActive)
-            for (auto *edit : edits) if (focus && (focus == edit || edit->isAncestorOf(focus))) recording = true;
+            for (auto *edit : edits) if (edit && focus && (focus == edit || edit->isAncestorOf(focus))) recording = true;
         if (recording == shortcutsRecording) return;
         shortcutsRecording = recording;
         if (recording) hotkeys.suspend();
-        else if (const auto error = hotkeys.apply(hotkeys.bindings()); !error.isEmpty()) settingsFeedback->setText(error);
+        else if (const auto error = hotkeys.apply(hotkeys.bindings()); !error.isEmpty()) setSettingsFeedback(error);
     }
 
     void refreshShortcuts()
     {
         const auto &bindings = hotkeys.bindings();
-        const std::array<QAction *, 4> actions{snipAction, pasteAction, replayAction, ocrAction};
-        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen"};
-        for (int i = 0; i < 4; ++i) {
+        const std::array<QAction *, 5> actions{snipAction, pasteAction, replayAction, ocrAction, translateAction};
+        const QStringList names{"Capture screenshot", "Paste as pin", "Restore last image", "Copy text from screen", "Dictionary / translate"};
+        for (int i = 0; i < 5; ++i) {
             actions[i]->setShortcut(bindings[i].key);
             actions[i]->setText(names[i] + (bindings[i].buttons ? " · " + bindings[i].toString() : QString()));
         }
@@ -260,6 +328,7 @@ private:
         pasteKeys->setText(bindings[1].toString(QKeySequence::NativeText));
         replayKeys->setText(bindings[2].toString(QKeySequence::NativeText));
         ocrKeys->setText(bindings[3].toString(QKeySequence::NativeText));
+        translateKeys->setText(bindings[4].toString(QKeySequence::NativeText));
     }
 
     void refreshHistory()
@@ -277,7 +346,7 @@ private:
         if (captureBusy) return;
         if (history.busy()) { replayPending = true; status->setText("Preparing your last image…"); return; }
         auto saved = history.restore();
-        if (saved.image.isNull()) { status->setText("No saved image to restore. Capture or paste an image first."); show(); return; }
+        if (saved.image.isNull()) { reportStatus("No saved image to restore. Capture or paste an image first."); return; }
         pin(std::move(saved.image), saved.position, saved.zoom);
         status->setText("Last image restored, including annotations and zoom.");
     }
@@ -301,6 +370,7 @@ private:
             status->setText(QString("%1 pinned image(s).").arg(pins.size()));
         });
         connect(window, &PinWindow::ocrRequested, this, [this](QImage image) { ocr(std::move(image)); });
+        connect(window, &PinWindow::translateRequested, this, [this](QImage image) { ocr(std::move(image), true); });
         window->show();
         status->setText(QString("%1 pinned image(s) · Hover and press Space for annotation tools.").arg(pins.size()));
     }
@@ -308,7 +378,7 @@ private:
     void paste()
     {
         auto image = QApplication::clipboard()->image();
-        if (image.isNull()) { status->setText("The clipboard does not contain an image."); show(); return; }
+        if (image.isNull()) { reportStatus("The clipboard does not contain an image."); return; }
         pin(std::move(image), QCursor::pos());
     }
 
@@ -318,25 +388,35 @@ private:
         status->setText("Mouse input restored for all pins.");
     }
 
-    void ocr(QImage image, bool quick = false)
+    void ocr(QImage image, bool translate = false)
     {
-        if (ocrBusy) { status->setText("OCR is already running."); show(); return; }
+        if (ocrBusy) { reportStatus("OCR is already running."); return; }
         ocrBusy = true;
         status->setText("Recognizing text locally…");
         auto result = std::make_shared<OcrResult>();
         const auto executable = QCoreApplication::applicationFilePath();
+        const QPoint anchor = QCursor::pos();
+        QPointer<TranslationCard> card;
+        if (translate) {
+            card = new TranslationCard;
+            connect(this, &QObject::destroyed, card, &QObject::deleteLater);
+            card->showAt(anchor);
+        }
         auto *worker = QThread::create([image = std::move(image), executable, result] { *result = recognizeTextInWorker(image, executable); });
         connect(worker, &QThread::finished, worker, &QObject::deleteLater);
-        connect(worker, &QThread::finished, this, [this, result, quick] {
+        connect(worker, &QThread::finished, this, [this, result, translate, card] {
             ocrBusy = false;
-            if (!result->error.isEmpty()) status->setText("OCR: " + result->error);
-            else if (result->text.trimmed().isEmpty()) status->setText("OCR found no text. Clipboard kept.");
-            else {
+            if (!result->error.isEmpty()) {
+                if (card) card->setOcrError(result->error);
+                else if (!translate) reportStatus("OCR: " + result->error, QSystemTrayIcon::Warning);
+            } else if (result->text.trimmed().isEmpty()) {
+                if (card) card->setOcrError("No text found. Try selecting a tighter region.");
+                else if (!translate) reportStatus("OCR found no text. Clipboard kept.");
+            } else {
                 QApplication::clipboard()->setText(result->text);
-                status->setText(QString("OCR copied %1 characters to the clipboard.").arg(result->text.size()));
+                if (card) card->setSourceText(result->text);
+                else if (!translate) reportStatus(QString("OCR copied %1 characters to the clipboard.").arg(result->text.size()));
             }
-            if (!quick || !result->error.isEmpty() || result->text.trimmed().isEmpty()) show();
-            else tray.showMessage("Text copied", "Your selected text is ready to paste.", QSystemTrayIcon::Information, 2000);
         });
         worker->start();
     }
@@ -348,23 +428,31 @@ private:
         }
         overlays.clear();
         captureBusy = false;
+#ifdef Q_OS_MACOS
+        if (restoreCaptureFocus) { restoreCaptureFocus(); restoreCaptureFocus = {}; }
+#endif
     }
 
-    void capture(bool quick = false)
+    void capture(CaptureOverlay::Mode mode = CaptureOverlay::Mode::Screenshot)
     {
         if (captureBusy) return;
-        if (quick && ocrBusy) { status->setText("OCR is already running."); show(); return; }
+        if (mode != CaptureOverlay::Mode::Screenshot && ocrBusy) { reportStatus("OCR is already running."); return; }
         if (!screenCaptureAllowed()) {
-            status->setText("Allow FastPin in System Settings → Privacy & Security → Screen Recording, then try again. macOS may require restarting the app.");
-            show();
+            reportStatus("Allow FastPin in System Settings → Privacy & Security → Screen Recording, then try again. macOS may require restarting the app.", QSystemTrayIcon::Warning);
             return;
         }
         captureBusy = true;
+#ifdef Q_OS_MACOS
+        restoreCaptureFocus = captureFocusRestorer();
+#endif
         if (welcome) welcome->reject();
+#ifdef FASTPIN_NATIVE_SETTINGS
+        nativeSettings->hide();
+#endif
         hide();
         // One activation delay lets the panel/tray menu leave the compositor.
         // There is no recurring timer, mouse polling or screen recording stream.
-        QTimer::singleShot(80, this, [this, quick] {
+        QTimer::singleShot(80, this, [this, mode] {
             QList<ScreenFrame> frames;
             QList<DesktopCoordinates> coordinates;
             const auto windows = desktopWindows();
@@ -372,8 +460,7 @@ private:
                 const QPixmap pixmap = screen->grabWindow(0);
                 if (pixmap.isNull()) {
                     finishCapture();
-                    status->setText("Screen capture failed. Check screen recording permission.");
-                    show();
+                    reportStatus("Screen capture failed. Check screen recording permission.", QSystemTrayIcon::Warning);
                     return;
                 }
                 ScreenFrame frame{pixmap.toImage(), screen->geometry(), pixmap.devicePixelRatio()};
@@ -384,7 +471,7 @@ private:
             // Capture every display before showing overlays, preserving each display's own DPR.
             for (qsizetype i = 0; i < frames.size(); ++i) {
                 auto *overlay = new CaptureOverlay(std::move(frames[i]), windows, coordinates[i]);
-                overlay->setQuickOcr(quick);
+                overlay->setMode(mode);
                 overlays.append(overlay);
                 connect(overlay, &CaptureOverlay::canceled, this, [this] { finishCapture(); });
                 connect(overlay, &CaptureOverlay::accepted, this, [this](QImage image, QPoint pos, bool copyOnly) {
@@ -392,8 +479,11 @@ private:
                     if (copyOnly) { history.remember(image, pos); replayAction->setEnabled(history.enabled); QApplication::clipboard()->setImage(image); }
                     else pin(std::move(image), pos);
                 });
-                connect(overlay, &CaptureOverlay::ocrRequested, this, [this, quick](QImage image) {
-                    finishCapture(); ocr(std::move(image), quick);
+                connect(overlay, &CaptureOverlay::ocrRequested, this, [this](QImage image) {
+                    finishCapture(); ocr(std::move(image));
+                });
+                connect(overlay, &CaptureOverlay::translateRequested, this, [this](QImage image) {
+                    finishCapture(); ocr(std::move(image), true);
                 });
                 connect(overlay, &CaptureOverlay::colorCopied, this, [this](QString color) {
                     finishCapture();
@@ -403,8 +493,7 @@ private:
                 connect(overlay, &CaptureOverlay::detectionModeChanged, this, [this, overlay](bool elementMode) {
                     if (elementMode && !elementAccessAllowed(false)) {
                         finishCapture();
-                        status->setText("Allow Accessibility for Element detection, then capture again. Window detection does not need this permission.");
-                        show();
+                        reportStatus("Allow Accessibility for Element detection, then capture again. Window detection does not need this permission.", QSystemTrayIcon::Warning);
                         elementAccessAllowed(true);
                         return;
                     }
@@ -422,17 +511,24 @@ private:
     QSystemTrayIcon tray;
     QSettings settings;
     CaptureHistory history;
+#ifdef FASTPIN_NATIVE_SETTINGS
+    std::unique_ptr<MacSettings> nativeSettings;
+    std::unique_ptr<QMenuBar> applicationMenuBar;
+#endif
     QTabWidget *pages;
     QPointer<Onboarding> welcome;
-    std::array<ShortcutEdit *, 4> edits{};
-    QLabel *status, *settingsFeedback, *preview, *historyDetail, *captureKeys, *pasteKeys, *replayKeys, *ocrKeys;
+    std::array<ShortcutEdit *, 5> edits{};
+    QLabel *status, *settingsFeedback = nullptr, *preview, *historyDetail, *captureKeys, *pasteKeys, *replayKeys, *ocrKeys, *translateKeys;
     QPushButton *replayButton;
     QCheckBox *remember;
-    QAction *snipAction, *pasteAction, *replayAction, *ocrAction;
+    QAction *snipAction, *pasteAction, *replayAction, *ocrAction, *translateAction;
     bool replayPending = false;
     bool shortcutsRecording = false;
     QList<PinWindow *> pins;
     QList<QPointer<CaptureOverlay>> overlays;
+#ifdef Q_OS_MACOS
+    std::function<void()> restoreCaptureFocus;
+#endif
     bool captureBusy = false;
     bool ocrBusy = false;
 };
@@ -454,8 +550,11 @@ int main(int argc, char **argv)
     for (const auto &argument : app.arguments().mid(1)) {
         if (!argument.startsWith('-')) { openingImage = true; controller.openImage(argument); }
     }
-    if (!app.arguments().contains("--background")) {
+    if (app.arguments().contains("--settings")) controller.showPreferences();
+    else if (!app.arguments().contains("--background")) {
+#ifndef Q_OS_MACOS
         controller.show();
+#endif
         if (!openingImage) controller.showGettingStarted(false);
     }
     return app.exec();

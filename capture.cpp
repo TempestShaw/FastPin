@@ -5,9 +5,11 @@
 #include <QClipboard>
 #include <QFileDialog>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QThread>
 #include <cmath>
 #include <memory>
@@ -100,11 +102,26 @@ CaptureOverlay::CaptureOverlay(ScreenFrame value, QList<DesktopWindow> targets, 
     setGeometry(frame.geometry);
     toolbar = new AnnotationToolbar(true, this);
     textEditor = new InlineTextEditor(this);
+    textEditor->installEventFilter(this);
+    shortcutHint = new QLabel(this);
+    shortcutHint->setObjectName("captureShortcutHint");
+    shortcutHint->setAccessibleName("Capture shortcut hints");
+    shortcutHint->setAttribute(Qt::WA_TransparentForMouseEvents);
+    shortcutHint->setFocusPolicy(Qt::NoFocus);
+    shortcutHint->setTextFormat(Qt::RichText);
+    shortcutHint->setWordWrap(true);
+    shortcutHint->setStyleSheet("QLabel { color: #F2F5F8; background: rgba(24,28,36,205);"
+                               "border: 1px solid rgba(255,255,255,40); border-radius: 12px; padding: 12px; font-size: 12px; }");
     connect(textEditor, &InlineTextEditor::submitted, this, [this](QString text, QPointF baseline) {
-        Annotation a; a.tool = Tool::Text; a.start = baseline * frame.ratio;
-        a.text = text; a.color = annotationColor; a.fontSize = 20 * frame.ratio;
-        annotations.add(std::move(a)); toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update(selection.rect.toAlignedRect());
+        if (editingText >= 0) annotations.replaceText(editingText, text);
+        else {
+            Annotation a; a.tool = Tool::Text; a.start = baseline * frame.ratio;
+            a.text = text; a.color = annotationColor; a.fontSize = 20 * frame.ratio;
+            annotations.add(std::move(a));
+        }
+        toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update(selection.rect.toAlignedRect());
     });
+    connect(textEditor, &InlineTextEditor::finished, this, [this] { editingText = -1; update(selection.rect.toAlignedRect()); });
     toolbar->hide();
     connect(toolbar, &AnnotationToolbar::toolChanged, this, &CaptureOverlay::setTool);
     connect(toolbar, &AnnotationToolbar::colorChanged, this, [this](QColor value) { textEditor->finish(); annotationColor = value; });
@@ -117,6 +134,7 @@ CaptureOverlay::CaptureOverlay(ScreenFrame value, QList<DesktopWindow> targets, 
         else if (action == EditorAction::Pin) accept(false);
         else if (action == EditorAction::Save) save();
         else if (action == EditorAction::Ocr) emit ocrRequested(selectedImage());
+        else if (action == EditorAction::Translate) emit translateRequested(selectedImage());
         else if (action == EditorAction::Close) emit canceled();
         toolbar->setHistory(annotations.canUndo(), annotations.canRedo());
         update(selection.rect.toAlignedRect());
@@ -129,11 +147,12 @@ CaptureOverlay::CaptureOverlay(ScreenFrame value, QList<DesktopWindow> targets, 
     setElementMode(false);
 }
 
-void CaptureOverlay::setQuickOcr(bool enabled)
+void CaptureOverlay::setMode(Mode value)
 {
-    quickOcr = enabled;
-    setWindowTitle(enabled ? "FastPin — Select text" : "FastPin — Select region");
-    setAccessibleName(enabled ? "OCR selection" : "Screenshot selection");
+    mode = value;
+    setWindowTitle(mode == Mode::Translate ? "FastPin — Translate text" : mode == Mode::CopyText ? "FastPin — Select text" : "FastPin — Select region");
+    setAccessibleName(mode == Mode::Translate ? "Translation selection" : mode == Mode::CopyText ? "OCR selection" : "Screenshot selection");
+    updateShortcutHint();
     update();
 }
 
@@ -162,7 +181,70 @@ void CaptureOverlay::setElementMode(bool enabled)
     if (enabled && !elementAllowed) detectionHint = "Element needs Accessibility permission; using Window";
     setAccessibleDescription(enabled ? "Detect: Element. Tab switches to Window." : "Detect: Window. Tab switches to Element.");
     updateDetection();
+    updateShortcutHint();
     update();
+}
+
+bool CaptureOverlay::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == textEditor && (event->type() == QEvent::Show || event->type() == QEvent::Hide)) updateShortcutHint();
+    return QWidget::eventFilter(object, event);
+}
+
+void CaptureOverlay::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    if (shortcutHint) updateShortcutHint();
+}
+
+void CaptureOverlay::updateShortcutHint()
+{
+    QString title = "Capture shortcuts";
+    QString detail = selection.rect.isEmpty() ? "Select a window or drag a region first." :
+                     locked ? "Drag to move or resize the selection." : "Pin this window, or drag to select a region.";
+    QString keys;
+    if (textEditor->isVisible()) {
+        title = "Text annotation"; detail = "Shortcuts while typing";
+        keys = "<tr><td><b>Enter</b> &nbsp; Finish text</td><td><b>Shift + Enter</b> &nbsp; New line</td></tr>"
+               "<tr><td colspan='2'><b>Esc</b> &nbsp; Cancel text</td></tr>";
+    } else if (mode != Mode::Screenshot) {
+        const bool translate = mode == Mode::Translate;
+        title = translate ? "Dictionary / translate" : "Copy text from screen";
+        detail = translate ? "Drag a region and release to translate its text." : "Drag a region to recognize and copy its text.";
+        keys = QString("<tr><td colspan='2'><b>Space / Enter</b> &nbsp; %1</td></tr>"
+                       "<tr><td><b>Tab</b> &nbsp; Window / Element</td><td><b>Esc / Right-click</b> &nbsp; Cancel</td></tr>")
+            .arg(translate ? "Dictionary / translate" : "Copy text (OCR)");
+    } else {
+        keys = QString("<tr><td><b>Space / Enter</b> &nbsp; Pin to desktop</td><td><b>O</b> &nbsp; Copy text (OCR)</td></tr>"
+                       "<tr><td colspan='2'><b>Shift + O</b> &nbsp; Dictionary / translate</td></tr>"
+                       "<tr><td><b>%1</b> &nbsp; Copy image</td><td><b>%2</b> &nbsp; Save PNG</td></tr>"
+                       "<tr><td><b>P / A</b> &nbsp; Pen / Arrow</td><td><b>R / T</b> &nbsp; Rectangle / Text</td></tr>"
+                       "<tr><td><b>M</b> &nbsp; Move / Resize</td><td><b>Tab</b> &nbsp; Window / Element</td></tr>"
+                       "<tr><td><b>C</b> &nbsp; Copy color</td><td><b>Shift</b> &nbsp; HEX / RGB</td></tr>"
+                       "<tr><td><b>%3</b> &nbsp; Undo</td><td><b>%4</b> &nbsp; Redo</td></tr>"
+                       "<tr><td colspan='2'><b>Esc / Right-click</b> &nbsp; Cancel capture</td></tr>")
+            .arg(QKeySequence(QKeySequence::Copy).toString(QKeySequence::NativeText).toHtmlEscaped(),
+                 QKeySequence(QKeySequence::Save).toString(QKeySequence::NativeText).toHtmlEscaped(),
+                 QKeySequence(QKeySequence::Undo).toString(QKeySequence::NativeText).toHtmlEscaped(),
+                 QKeySequence(QKeySequence::Redo).toString(QKeySequence::NativeText).toHtmlEscaped());
+    }
+    detail = QString("%1 detection · %2").arg(elementMode ? "Element" : "Window", detail);
+    if (!detectionHint.isEmpty()) detail += "\n" + detectionHint;
+    const QString html = QString("<b>%1</b><br><span style='color:#BDCAD7'>%2</span>"
+                                 "<table width='100%' cellspacing='6' cellpadding='0'>%3</table>")
+        .arg(title, detail.toHtmlEscaped().replace('\n', "<br>"), keys);
+    QRect hintBounds = rect();
+    const QRect available = screen()->availableGeometry().translated(-geometry().topLeft()).intersected(rect());
+    if (!available.isEmpty()) hintBounds = available;
+    const int hintWidth = qMin(520, qMax(1, hintBounds.width() - 32));
+    if (shortcutHint->text() != html || shortcutHint->width() != hintWidth) {
+        shortcutHint->setFixedWidth(hintWidth);
+        shortcutHint->setText(html);
+        shortcutHint->adjustSize();
+    }
+    shortcutHint->move(hintBounds.left() + 16,
+                       qMax(hintBounds.top() + 8, hintBounds.bottom() - shortcutHint->height() - 15));
+    if (toolbar->isVisible()) positionTools();
 }
 
 bool CaptureOverlay::event(QEvent *e)
@@ -195,6 +277,7 @@ void CaptureOverlay::updateDetection()
         if ((queriedWindow != target.handle || queriedPoint != point) && !queryBusy && !detectionDelay.isActive()) detectionDelay.start();
     }
     // Include changed mask, but avoid repainting the interiors of unchanged rectangles.
+    updateShortcutHint();
     update((before - QRegion(selection.rect.toAlignedRect())) + decorationRegion() +
            (QRegion(selection.rect.toAlignedRect()) - before));
 }
@@ -229,7 +312,6 @@ void CaptureOverlay::applyElementResult(DesktopWindow window, QPointF point, qui
         detectionHint = result.message;
     }
     updateDetection();
-    update(QRect(12, height() - 65, width() - 24, 53));
 }
 
 QRect CaptureOverlay::magnifierRect(QPointF point) const
@@ -238,6 +320,7 @@ QRect CaptureOverlay::magnifierRect(QPointF point) const
     int x = qRound(point.x()) + 24, y = qRound(point.y()) + 24;
     if (x + w > width()) x = qRound(point.x()) - w - 24;
     if (y + h > height()) y = qRound(point.y()) - h - 24;
+    if (shortcutHint && QRect(x, y, w, h).intersects(shortcutHint->geometry())) y = shortcutHint->y() - h - 12;
     return {qMax(0, x), qMax(0, y), w, h};
 }
 
@@ -285,13 +368,13 @@ void CaptureOverlay::paintEvent(QPaintEvent *)
     if (selected.isEmpty()) p.fillRect(rect(), mask);
     else {
         p.save(); p.setClipRect(selected, Qt::IntersectClip); p.scale(1 / frame.ratio, 1 / frame.ratio);
-        p.setRenderHint(QPainter::Antialiasing); annotations.paint(p); p.restore();
+        p.setRenderHint(QPainter::Antialiasing); annotations.paint(p, true, editingText); p.restore();
         p.fillRect(QRectF(0, 0, width(), selected.top()), mask);
         p.fillRect(QRectF(0, selected.bottom(), width(), height() - selected.bottom()), mask);
         p.fillRect(QRectF(0, selected.top(), selected.left(), selected.height()), mask);
         p.fillRect(QRectF(selected.right(), selected.top(), width() - selected.right(), selected.height()), mask);
         p.setRenderHint(QPainter::Antialiasing);
-        p.setPen(QPen(QColor("#287cf4"), 1));
+        p.setPen(QPen(QColor(mode == Mode::Translate ? "#38A87E" : "#287cf4"), 1));
         p.drawRect(selected);
         p.setBrush(Qt::white);
         for (auto point : {selected.topLeft(), selected.topRight(), selected.bottomLeft(), selected.bottomRight(),
@@ -320,13 +403,6 @@ void CaptureOverlay::paintEvent(QPaintEvent *)
     const QString code = hex ? color.name().toUpper() : QString("%1, %2, %3").arg(color.red()).arg(color.green()).arg(color.blue());
     p.drawText(box.adjusted(8, 143, -8, -6), Qt::AlignCenter, code + "  [C]\n" + QString("%1, %2 · Shift: RGB/HEX").arg(pixel.x()).arg(pixel.y()));
     }
-    const QRect help(12, height() - 65, qMin(width() - 24, detectionHint.isEmpty() ? 460 : 720), detectionHint.isEmpty() ? 30 : 53);
-    p.setPen(Qt::NoPen); p.setBrush(QColor("#242a35")); p.drawRoundedRect(help, 6, 6); p.setPen(Qt::white);
-    p.drawText(help.adjusted(8, 0, 0, 0), Qt::AlignVCenter,
-               QString("%1  [Tab] · %2 · Esc to cancel%3")
-                   .arg(elementMode ? "Element" : "Window",
-                        quickOcr ? "Select to copy text" : "Drag to select · Space or Enter to pin",
-                        detectionHint.isEmpty() ? QString() : "\n" + detectionHint));
 }
 
 void CaptureOverlay::mousePressEvent(QMouseEvent *e)
@@ -337,7 +413,13 @@ void CaptureOverlay::mousePressEvent(QMouseEvent *e)
     if (tool != Tool::Move && locked && selection.rect.contains(e->position())) {
         const QPointF point = e->position() * frame.ratio;
         if (tool == Tool::Text) {
-            textEditor->begin(e->position(), selection.rect, annotationColor, 20);
+            textEditor->finish();
+            editingText = annotations.textAt(point);
+            if (editingText >= 0) {
+                const auto &a = annotations.at(editingText);
+                textEditor->edit(a.text, a.start / frame.ratio, selection.rect, a.color, a.fontSize / frame.ratio);
+            } else textEditor->begin(e->position(), selection.rect, annotationColor, 20);
+            update(selection.rect.toAlignedRect());
         } else annotations.begin(tool, point, annotationColor, strokeWidth * frame.ratio);
         return;
     }
@@ -349,6 +431,7 @@ void CaptureOverlay::mousePressEvent(QMouseEvent *e)
     pressedPreview = selection.rect;
     if (detectClick) selection.rect = {};
     selection.begin(QPointF(frame.pixelAt(e->position())) / frame.ratio);
+    updateShortcutHint();
     update(old + decorationRegion() + previous.xored(QRegion(selection.rect.toAlignedRect())));
 }
 
@@ -373,7 +456,8 @@ void CaptureOverlay::mouseReleaseEvent(QMouseEvent *e)
         const QRegion previous(selection.rect.toAlignedRect());
         if (detectClick && QLineF(pressPoint, e->position()).length() < 3) selection.rect = pressedPreview;
         locked = !selection.rect.isEmpty();
-        if (quickOcr && locked) { emit ocrRequested(selectedImage()); return; }
+        updateShortcutHint();
+        if (mode != Mode::Screenshot && locked) { accept(false); return; }
         if (locked) { positionTools(); toolbar->show(); }
         update(previous + decorationRegion() + QRegion(selection.rect.toAlignedRect()));
     }
@@ -387,7 +471,8 @@ void CaptureOverlay::accept(bool clipboardOnly)
 {
     textEditor->finish();
     if (frame.pixelRect(selection.rect).isEmpty()) return;
-    if (quickOcr) { emit ocrRequested(selectedImage()); return; }
+    if (mode == Mode::Translate) { emit translateRequested(selectedImage()); return; }
+    if (mode == Mode::CopyText) { emit ocrRequested(selectedImage()); return; }
     emit accepted(selectedImage(), frame.geometry.topLeft() + selection.rect.topLeft().toPoint(), clipboardOnly);
 }
 
@@ -400,6 +485,7 @@ void CaptureOverlay::keyPressEvent(QKeyEvent *e)
     else if (e->matches(QKeySequence::Save)) save();
     else if (e->matches(QKeySequence::Undo)) { annotations.undo(); toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update(selection.rect.toAlignedRect()); }
     else if (e->matches(QKeySequence::Redo)) { annotations.redo(); toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update(selection.rect.toAlignedRect()); }
+    else if (e->key() == Qt::Key_O && e->modifiers() == Qt::ShiftModifier && !frame.pixelRect(selection.rect).isEmpty()) emit translateRequested(selectedImage());
     else if (e->key() == Qt::Key_O && !frame.pixelRect(selection.rect).isEmpty()) emit ocrRequested(selectedImage());
     else if (e->key() == Qt::Key_M) setTool(Tool::Move);
     else if (e->key() == Qt::Key_P) setTool(Tool::Pen);
@@ -431,6 +517,7 @@ void CaptureOverlay::setTool(Tool value)
     textEditor->finish();
     const QRegion dirty = decorationRegion();
     locked = true; tool = value; toolbar->setTool(tool);
+    updateShortcutHint();
     positionTools(); toolbar->show(); setFocus(); movePointer(pointer); update(dirty);
 }
 
@@ -440,7 +527,10 @@ void CaptureOverlay::positionTools()
     const int x = qBound(8, qRound(selection.rect.right()) - toolbar->width(), qMax(8, width() - toolbar->width() - 8));
     int y = qRound(selection.rect.bottom()) + 10;
     if (y + toolbar->height() > height() - 70) y = qRound(selection.rect.top()) - toolbar->height() - 36;
-    toolbar->move(x, qBound(8, y, qMax(8, height() - toolbar->height() - 8)));
+    y = qBound(8, y, qMax(8, height() - toolbar->height() - 8));
+    if (QRect(QPoint(x, y), toolbar->size()).intersects(shortcutHint->geometry()))
+        y = qMax(8, shortcutHint->y() - toolbar->height() - 10);
+    toolbar->move(x, y);
 }
 
 QImage CaptureOverlay::selectedImage() const

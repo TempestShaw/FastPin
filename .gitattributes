@@ -1,0 +1,3 @@
+dictionary/*.qz binary
+# Preserve upstream license text verbatim.
+licenses/third-party/Sparkle-2.10.0/LICENSE -whitespace

@@ -1,6 +1,6 @@
 # Building FastPin
 
-Requires CMake 3.24+, a C++17 compiler, and Qt 6.8+ with Widgets and Test.
+Requires CMake 3.24+, a C++17 compiler, and Qt 6.8+ with Widgets and Test. macOS builds fetch the pinned Sparkle binary framework; macOS tests also require Python 3 and the Xcode Swift toolchain.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/path/to/Qt
@@ -20,3 +20,5 @@ For a local macOS development build, `./package-macos.sh build build/new-package
 For Windows, run `./package-windows.ps1 -PackageDirectory build/package -Output build/FastPin-x64.msix`. A public MSIX requires a trusted signature matching the publisher identity. The ZIP preview uses loose-file registration with Developer Mode as described in GETTING_STARTED.md.
 
 Application identifiers are `io.github.tempestshaw.fastpin` on macOS and `TempestShaw.FastPin` on Windows. FastPin has its own settings, saved-image storage, and permission grants.
+
+Native macOS settings and signed in-app updates are described in [UPDATES.md](UPDATES.md).

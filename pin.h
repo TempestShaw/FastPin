@@ -23,6 +23,7 @@ public:
 signals:
     void closed();
     void ocrRequested(QImage image);
+    void translateRequested(QImage image);
 protected:
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
@@ -57,6 +58,7 @@ private:
     AnnotationLayer annotations;
     AnnotationToolbar *toolbar;
     InlineTextEditor *textEditor;
+    qsizetype editingText = -1;
     Hotkeys toolShortcut;
     bool hovered = false;
 #ifdef Q_OS_MACOS

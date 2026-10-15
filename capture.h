@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QWidget>
 class InlineTextEditor;
+class QLabel;
 
 struct ScreenFrame {
     QImage image; // Physical pixels, DPR 1; never mutated while selecting.
@@ -37,18 +38,22 @@ private:
 class CaptureOverlay : public QWidget {
     Q_OBJECT
 public:
+    enum class Mode { Screenshot, CopyText, Translate };
     explicit CaptureOverlay(ScreenFrame frame, QList<DesktopWindow> windows = {}, DesktopCoordinates coordinates = {});
     void setElementMode(bool enabled);
-    void setQuickOcr(bool enabled);
+    void setMode(Mode mode);
     bool isElementMode() const { return elementMode; }
 signals:
     void accepted(QImage image, QPoint position, bool clipboardOnly);
     void ocrRequested(QImage image);
+    void translateRequested(QImage image);
     void colorCopied(QString color);
     void detectionModeChanged(bool elementMode);
     void canceled();
 protected:
     bool event(QEvent *) override;
+    bool eventFilter(QObject *, QEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
     void mouseMoveEvent(QMouseEvent *) override;
@@ -67,16 +72,19 @@ private:
     QRectF detectedLocalRect(QRectF native) const;
     void setTool(Tool tool);
     void positionTools();
+    void updateShortcutHint();
     QImage selectedImage() const;
     void save();
     ScreenFrame frame;
     Selection selection;
     QPointF pointer;
     bool hex = true;
-    bool quickOcr = false;
+    Mode mode = Mode::Screenshot;
     AnnotationLayer annotations;
     AnnotationToolbar *toolbar;
     InlineTextEditor *textEditor;
+    qsizetype editingText = -1;
+    QLabel *shortcutHint = nullptr;
     Tool tool = Tool::Move;
     QColor annotationColor = QColor("#ff5a65");
     qreal strokeWidth = 3;

@@ -20,7 +20,9 @@
   <a href="LICENSE.md"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-151B1C"></a>
 </p>
 
-FastPin turns a screenshot into a reference you can keep above your work. Select a window, a UI element, or any region; add an arrow or a note; then pin it to your desktop. Move and zoom your pins, copy text with OCR, or pick an exact pixel's color.
+FastPin turns a screenshot into a reference you can keep above your work. Select a window, a UI element, or any region; add an arrow or a note; then pin it to your desktop. Move and zoom your pins, copy text with OCR, translate a word or sentence, or pick an exact pixel's color.
+
+On macOS, FastPin lives in the menu bar without a Dock icon. Settings, Shortcuts and About use native macOS controls. Signed in-app updates let you download and restart from **About → Check for Updates…**; older previews need one manual installation of an updater-enabled version.
 
 ## A look at FastPin
 
@@ -35,7 +37,7 @@ Capture something new, pin an image from your clipboard, or pick up where you le
 ## Your first capture
 
 1. Press **Ctrl+Shift+2**, or choose **Capture screenshot** from the menu bar or tray. Drag to select a region. Press **Tab** to switch between **Window** and **Element** detection.
-2. Mark what matters: **P** for pen, **A** for arrow, **R** for rectangle, or **T** for text. With Text selected, click the image and type directly on it. **Enter** finishes text; **Shift+Enter** adds a line.
+2. Mark what matters: **P** for pen, **A** for arrow, **R** for rectangle, or **T** for text. With Text selected, click the image and type directly on it. Click existing text to edit it again. **Enter** finishes text; **Shift+Enter** adds a line.
 3. Press **Space** or **Enter** to pin the image. Drag to move it and scroll to zoom. Its toolbar starts hidden: hover over the pin and press **Space** to show or hide the tools.
 
 Already have an image copied? Press **Ctrl+Shift+3** to pin it. Closed a pin you still need? **Ctrl+Shift+4** restores your last image with its annotations and zoom.
@@ -47,8 +49,9 @@ These are the defaults. Change them in **Preferences** to use your own keys or m
 - **Keep a reference beside your work.** Leave multiple images above other windows, move them where you need them, and zoom in on a detail.
 - **Explain the important part.** Use four focused annotation tools: pen, arrow, rectangle, and inline text, with undo and redo.
 - **Skip retyping.** Select a region and press **O** to copy recognized text, or use OCR from a pin's toolbar.
+- **Translate beside your work.** Press **Ctrl+D**, select text and release. A milk-white translucent card appears while recognition runs, then shows the result in place. Words and known short phrases use an offline dictionary; sentences use free online translation. The card includes pronunciation, copy and close controls.
 - **Sample a precise color.** Use the capture magnifier and arrow keys to position the cursor one pixel at a time. Press **C** to copy the color; **Shift** switches HEX and RGB.
-- **Make the controls yours.** Bind capture, paste, restore, and quick OCR to a key combination, a function key, or a mouse side-button gesture.
+- **Make the controls yours.** Bind capture, paste, restore, quick OCR and translation to a key combination, a function key, or a mouse side-button gesture. A capture hint panel shows the actions available in the current mode.
 
 To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The recognized text is copied straight to your clipboard. You can also choose **Copy text from screen** in the panel or menu.
 
@@ -77,12 +80,14 @@ The [illustrated Quick Start](GETTING_STARTED.md) walks through installation, pe
 | --- | --- |
 | Capture a screenshot | Ctrl+Shift+2 |
 | Copy text from screen | Ctrl+Shift+5 |
+| Select text to translate | Ctrl+D |
 | Pin an image from the clipboard | Ctrl+Shift+3 |
 | Restore the last image | Ctrl+Shift+4 |
 | Switch Window / Element detection | Tab while capturing |
 | Show or hide a pin's tools | Space while hovering over the pin |
 | Move / zoom a pin | Drag / scroll |
 | Copy recognized text | O, or OCR on the toolbar |
+| Translate a capture or pin | Shift+O, or Dictionary / translate on the toolbar |
 | Copy a pixel's color | C while capturing |
 | Switch HEX / RGB | Shift while capturing |
 | Save an image | Cmd+S on macOS / Ctrl+S on Windows |
@@ -92,6 +97,7 @@ To change a global shortcut, open **Preferences**, click its field, press your k
 ## Explore and contribute
 
 - [Quick Start](GETTING_STARTED.md): installation, capture, pinning, OCR, and color picking.
+- [macOS updates](docs/UPDATES.md): native settings and in-app update behavior.
 - [Releases](https://github.com/TempestShaw/FastPin/releases): downloads and what's new.
 - [Report a problem or suggest a feature](https://github.com/TempestShaw/FastPin/issues): include your OS, FastPin version, and steps to reproduce.
 - [Build from source](docs/BUILD.md): FastPin is a standalone C++17 application using Qt Widgets.

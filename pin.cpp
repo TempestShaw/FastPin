@@ -31,9 +31,15 @@ PinWindow::PinWindow(QImage value)
     textEditor->installEventFilter(this);
     connect(&toolShortcut, &Hotkeys::pinTools, this, [this] { if (canToggleTools()) toggleTools(); });
     connect(textEditor, &InlineTextEditor::submitted, this, [this](QString text, QPointF baseline) {
-        Annotation a; a.tool = Tool::Text; a.start = imagePoint(baseline);
-        a.text = text; a.color = color; a.fontSize = 20 * ratio; addAnnotation(std::move(a));
+        if (editingText >= 0) {
+            annotations.replaceText(editingText, text);
+            toolbar->setHistory(annotations.canUndo(), annotations.canRedo()); update();
+        } else {
+            Annotation a; a.tool = Tool::Text; a.start = imagePoint(baseline);
+            a.text = text; a.color = color; a.fontSize = 20 * ratio; addAnnotation(std::move(a));
+        }
     });
+    connect(textEditor, &InlineTextEditor::finished, this, [this] { editingText = -1; update(); });
     connect(toolbar, &AnnotationToolbar::toolChanged, this, &PinWindow::setTool);
     connect(toolbar, &AnnotationToolbar::colorChanged, this, [this](QColor value) { textEditor->finish(); color = value; });
     connect(toolbar, &AnnotationToolbar::widthChanged, this, [this](qreal value) { strokeWidth = value; });
@@ -44,6 +50,7 @@ PinWindow::PinWindow(QImage value)
         else if (action == EditorAction::Copy) copy();
         else if (action == EditorAction::Save) save();
         else if (action == EditorAction::Ocr) emit ocrRequested(exportedImage());
+        else if (action == EditorAction::Translate) emit translateRequested(exportedImage());
         else if (action == EditorAction::Close) { toolbar->hide(); setTool(Tool::Move); }
     });
     setZoom(1);
@@ -70,7 +77,7 @@ void PinWindow::paintEvent(QPaintEvent *)
     p.setRenderHint(QPainter::SmoothPixmapTransform, zoom < 1);
     p.drawImage(QPointF(), image);
     p.setRenderHint(QPainter::Antialiasing);
-    annotations.paint(p);
+    annotations.paint(p, true, editingText);
 }
 
 QImage PinWindow::exportedImage() const
@@ -131,7 +138,13 @@ void PinWindow::mousePressEvent(QMouseEvent *e)
     if (tool == Tool::Move) {
         moving = true; dragStart = e->globalPosition(); windowStart = pos();
     } else if (tool == Tool::Text) {
-        textEditor->begin(e->position(), rect(), color, 20 * zoom);
+        textEditor->finish();
+        editingText = annotations.textAt(imagePoint(e->position()));
+        if (editingText >= 0) {
+            const auto &a = annotations.at(editingText);
+            textEditor->edit(a.text, a.start * (zoom / ratio), rect(), a.color, a.fontSize * zoom / ratio);
+        } else textEditor->begin(e->position(), rect(), color, 20 * zoom);
+        update();
     } else {
         annotations.begin(tool, imagePoint(e->position()), color, strokeWidth * ratio);
         update();
@@ -184,6 +197,7 @@ void PinWindow::keyPressEvent(QKeyEvent *e)
     else if (e->key() == Qt::Key_A) setTool(Tool::Arrow);
     else if (e->key() == Qt::Key_R) setTool(Tool::Rectangle);
     else if (e->key() == Qt::Key_T) setTool(Tool::Text);
+    else if (e->key() == Qt::Key_O && e->modifiers() == Qt::ShiftModifier) emit translateRequested(exportedImage());
     else if (e->key() == Qt::Key_O) emit ocrRequested(exportedImage());
     else if (e->key() == Qt::Key_E) toggleTools();
     else if (e->key() == Qt::Key_Space && e->modifiers() == Qt::NoModifier && !e->isAutoRepeat() && canToggleTools()) toggleTools();
@@ -204,6 +218,7 @@ void PinWindow::contextMenuEvent(QContextMenuEvent *e)
     menu.addAction("Redo", this, &PinWindow::redo)->setEnabled(annotations.canRedo());
     menu.addAction("Copy image", this, &PinWindow::copy);
     menu.addAction("OCR → copy text · O", this, [this] { emit ocrRequested(exportedImage()); });
+    menu.addAction("Dictionary / translate · Shift+O", this, [this] { textEditor->finish(); emit translateRequested(exportedImage()); });
     menu.addAction("Save PNG…", this, &PinWindow::save);
     menu.addAction("Original size · 0", this, [this] { setZoom(1); });
     menu.addAction("Click through (restore from tray)", this, [this] { setClickThrough(true); });

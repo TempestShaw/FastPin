@@ -4,12 +4,16 @@
 #include <QList>
 #include <QRectF>
 #include <QString>
+#include <functional>
 
 class QScreen;
 #ifdef Q_OS_MACOS
 #include <functional>
 class QWidget;
 std::function<void()> watchPinHover(QWidget *window, std::function<void(bool)> changed);
+std::function<void()> captureFocusRestorer();
+std::function<void()> makePanelNonactivating(QWidget *window);
+std::function<void()> installTranslationGlass(QWidget *window);
 #endif
 
 // OS desktop coordinates: points on macOS, physical pixels on Windows.
@@ -34,3 +38,4 @@ ElementResult desktopElementAt(DesktopWindow window, QPointF point); // Worker t
 OcrResult recognizeText(QImage image); // Worker thread only; no network or bundled model.
 OcrResult recognizeTextInWorker(QImage image, const QString &executable);
 int runOcrWorker();
+std::function<void()> pronounceText(const QString &text);

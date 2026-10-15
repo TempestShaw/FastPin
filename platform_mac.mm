@@ -6,6 +6,19 @@
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 #import <Vision/Vision.h>
+#import <AVFoundation/AVFoundation.h>
+#import <QuartzCore/QuartzCore.h>
+#include <QRegularExpression>
+
+std::function<void()> pronounceText(const QString &text)
+{
+    auto *speech = [[AVSpeechSynthesizer alloc] init];
+    auto *utterance = [AVSpeechUtterance speechUtteranceWithString:text.toNSString()];
+    const bool chinese = text.contains(QRegularExpression("[\\x{3400}-\\x{9fff}]"));
+    utterance.voice = [AVSpeechSynthesisVoice voiceWithLanguage:chinese ? @"zh-TW" : @"en-US"];
+    [speech speakUtterance:utterance];
+    return [speech] { [speech stopSpeakingAtBoundary:AVSpeechBoundaryImmediate]; };
+}
 
 @interface FastPinHover : NSObject {
 @public
@@ -27,6 +40,69 @@ std::function<void()> watchPinHover(QWidget *window, std::function<void(bool)> c
         owner:observer userInfo:nil];
     [view addTrackingArea:area];
     return [view, area, observer] { observer->changed = {}; [view removeTrackingArea:area]; };
+}
+
+std::function<void()> captureFocusRestorer()
+{
+    if (QGuiApplication::platformName() != "cocoa") return {};
+    NSRunningApplication *previous = NSWorkspace.sharedWorkspace.frontmostApplication;
+    if (!previous || previous.processIdentifier == getpid()) return {};
+    return [previous] {
+        if (!NSApp.isActive || previous.terminated) return;
+        [NSApp yieldActivationToApplication:previous];
+        [previous activateFromApplication:NSRunningApplication.currentApplication options:0];
+    };
+}
+
+std::function<void()> makePanelNonactivating(QWidget *window)
+{
+    if (QGuiApplication::platformName() != "cocoa") return {};
+    NSView *view = (__bridge NSView *)reinterpret_cast<void *>(window->winId());
+    NSPanel *panel = (NSPanel *)view.window;
+    panel.styleMask |= NSWindowStyleMaskNonactivatingPanel;
+    panel.becomesKeyOnlyIfNeeded = YES;
+    panel.hidesOnDeactivate = NO;
+    // Qt creates the panel before we can set its style. Keep the foreground app
+    // on mouse-up too, since AppKit may retain the original activation behavior.
+    NSWorkspace *workspace = NSWorkspace.sharedWorkspace;
+    __block NSRunningApplication *previous = workspace.frontmostApplication;
+    id activation = [workspace.notificationCenter addObserverForName:NSWorkspaceDidActivateApplicationNotification
+        object:nil queue:nil usingBlock:^(NSNotification *notification) {
+            NSRunningApplication *app = notification.userInfo[NSWorkspaceApplicationKey];
+            if (app.processIdentifier != getpid()) previous = app;
+        }];
+    id clicks = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseUp handler:^NSEvent *(NSEvent *event) {
+        if (event.window == panel) {
+            // AppKit finishes activating after mouse-up; wait for that transition.
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+                if (NSRunningApplication.currentApplication.active && previous && !previous.terminated && previous.processIdentifier != getpid()) {
+                    [NSApp yieldActivationToApplication:previous];
+                    [previous activateFromApplication:NSRunningApplication.currentApplication options:0];
+                }
+            });
+        }
+        return event;
+    }];
+    return [workspace, activation, clicks] {
+        [workspace.notificationCenter removeObserver:activation]; [NSEvent removeMonitor:clicks];
+    };
+}
+
+std::function<void()> installTranslationGlass(QWidget *window)
+{
+    if (QGuiApplication::platformName() != "cocoa") return {};
+    NSView *view = (__bridge NSView *)reinterpret_cast<void *>(window->winId());
+    NSVisualEffectView *glass = [[NSVisualEffectView alloc] initWithFrame:view.frame];
+    glass.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    glass.material = NSVisualEffectMaterialMenu;
+    glass.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    glass.state = NSVisualEffectStateActive;
+    glass.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+    glass.wantsLayer = YES; glass.layer.cornerRadius = 16; glass.layer.masksToBounds = YES;
+    [view.superview addSubview:glass positioned:NSWindowBelow relativeTo:view];
+    view.window.appearance = glass.appearance;
+    view.window.backgroundColor = NSColor.clearColor; view.window.hasShadow = YES;
+    return [glass] { [glass removeFromSuperview]; };
 }
 
 QList<DesktopWindow> desktopWindows()

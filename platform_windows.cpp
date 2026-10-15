@@ -14,8 +14,21 @@
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.Media.Ocr.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <sapi.h>
 
 using Microsoft::WRL::ComPtr;
+
+std::function<void()> pronounceText(const QString &text)
+{
+    const HRESULT initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    if (FAILED(initialized)) return {};
+    ComPtr<ISpVoice> speech;
+    if (FAILED(CoCreateInstance(CLSID_SpVoice, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&speech))) ||
+        FAILED(speech->Speak(text.toStdWString().c_str(), SPF_ASYNC | SPF_IS_NOT_XML, nullptr))) {
+        speech.Reset(); CoUninitialize(); return {};
+    }
+    return [speech]() mutable { speech->Speak(L"", SPF_PURGEBEFORESPEAK, nullptr); speech.Reset(); CoUninitialize(); };
+}
 
 QList<DesktopWindow> desktopWindows()
 {

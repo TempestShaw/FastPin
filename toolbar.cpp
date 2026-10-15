@@ -37,6 +37,14 @@ QIcon toolIcon(const QString &name, QColor color)
             p.drawLine(r.topLeft(), r.topRight()); p.drawLine(r.topLeft(), r.bottomLeft());
         }
         p.drawLine(8, 8, 16, 8); p.drawLine(12, 8, 12, 16);
+    } else if (name == "speaker") {
+        p.drawPolygon(QPolygonF{{4, 9}, {8, 9}, {13, 5}, {13, 19}, {8, 15}, {4, 15}});
+        p.drawArc(QRectF(12, 7, 6, 10), -65 * 16, 130 * 16);
+        p.drawArc(QRectF(12, 3, 10, 18), -65 * 16, 130 * 16);
+    } else if (name == "translate") {
+        QFont font = p.font(); font.setPixelSize(13); p.setFont(font);
+        p.drawText(QRectF(1, 1, 15, 17), Qt::AlignCenter, QString::fromUtf8("文"));
+        p.drawText(QRectF(12, 10, 12, 14), Qt::AlignCenter, "A");
     } else if (name == "color") { p.setBrush(color); p.drawEllipse(QRectF(5, 5, 14, 14)); }
     else if (name == "width") { p.drawLine(5, 6, 19, 6); p.setPen(QPen(color, 3)); p.drawLine(5, 12, 19, 12); p.setPen(QPen(color, 5)); p.drawLine(5, 19, 19, 19); }
     else if (name == "capture") {
@@ -100,7 +108,9 @@ AnnotationToolbar::AnnotationToolbar(bool capture, QWidget *parent, Qt::WindowFl
     separator();
     action("copy", "Copy image", EditorAction::Copy); action("save", "Save PNG", EditorAction::Save);
     if (capture) action("pin", "Pin to desktop (Enter)", EditorAction::Pin);
-    action("ocr", "OCR · copy text (O)", EditorAction::Ocr); action("close", capture ? "Cancel (Esc)" : "Hide tools (Space)", EditorAction::Close);
+    action("ocr", "OCR · copy text (O)", EditorAction::Ocr);
+    action("translate", "Dictionary / translate (Shift+O)", EditorAction::Translate);
+    action("close", capture ? "Cancel (Esc)" : "Hide tools (Space)", EditorAction::Close);
     setHistory(false, false);
 }
 

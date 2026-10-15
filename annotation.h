@@ -21,17 +21,22 @@ struct Annotation {
 class AnnotationLayer {
 public:
     void add(Annotation annotation);
+    qsizetype textAt(QPointF point) const;
+    const Annotation &at(qsizetype index) const { return annotations[index]; }
+    void replaceText(qsizetype index, QString text);
     void undo();
     void redo();
     bool canUndo() const { return applied > 0; }
-    bool canRedo() const { return applied < annotations.size(); }
+    bool canRedo() const { return applied < history.size(); }
     bool isDrawing() const { return drawing; }
     void begin(Tool tool, QPointF point, QColor color, qreal width);
     QRectF drag(QPointF point);
     void end();
-    void paint(QPainter &p, bool includePending = true) const;
+    void paint(QPainter &p, bool includePending = true, qsizetype hiddenText = -1) const;
 private:
+    struct Change { qsizetype index; Annotation before, after; bool added; };
     QList<Annotation> annotations;
+    QList<Change> history;
     qsizetype applied = 0;
     Annotation pending;
     bool drawing = false;
