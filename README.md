@@ -48,7 +48,7 @@ These are the defaults. Change them in **Preferences** to use your own keys or m
 - **Explain the important part.** Use four focused annotation tools: pen, arrow, rectangle, and inline text, with undo and redo.
 - **Skip retyping.** Select a region and press **O** to copy recognized text, or use OCR from a pin's toolbar.
 - **Sample a precise color.** Use the capture magnifier and arrow keys to position the cursor one pixel at a time. Press **C** to copy the color; **Shift** switches HEX and RGB.
-- **Make the controls yours.** Bind capture, paste, and restore to a key combination, a function key, or a mouse side-button gesture.
+- **Make the controls yours.** Bind capture, paste, restore, and quick OCR to a key combination, a function key, or a mouse side-button gesture.
 
 To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The recognized text is copied straight to your clipboard. You can also choose **Copy text from screen** in the panel or menu.
 
@@ -56,8 +56,8 @@ To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The r
 
 | Platform | Download | Requirements |
 | --- | --- | --- |
-| macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.3/FastPin-0.1.0-preview.3-macOS-arm64.dmg) | macOS 14 or newer |
-| Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.3/FastPin-0.1.0-preview.3-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
+| macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.4/FastPin-0.1.0-preview.4-macOS-arm64.dmg) | macOS 14 or newer |
+| Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.4/FastPin-0.1.0-preview.4-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
 
 **macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection and mouse shortcuts also use Accessibility permission. This preview is not notarized. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
 
