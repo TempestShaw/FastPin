@@ -32,6 +32,14 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test-results-${{ matrix.os }}
+          path: |
+            build/native-core-results.xml
+            build/Testing/Temporary/LastTest.log
       - name: Package runtime dependencies
         run: cmake --install build --config Release --prefix "${{ github.workspace }}/build/package"
       - name: Build Windows MSIX (unsigned development artifact)
