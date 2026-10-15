@@ -86,10 +86,11 @@ static Qt::Modifier primaryModifier()
 Hotkeys::Bindings Hotkeys::defaults()
 {
     const auto control = primaryModifier();
-    // Keep every default on Control+Shift: plain Control+D is EOF/forward-delete and a browser bookmark key.
+    // Keep every default on Control+Shift+1–5, reachable with the left hand alone.
+    // Plain Control+D is EOF/forward-delete and a browser bookmark key, so it is not a default.
     return {QKeySequence(control | Qt::SHIFT | Qt::Key_2), QKeySequence(control | Qt::SHIFT | Qt::Key_3),
             QKeySequence(control | Qt::SHIFT | Qt::Key_4), QKeySequence(control | Qt::SHIFT | Qt::Key_5),
-            QKeySequence(control | Qt::SHIFT | Qt::Key_6)};
+            QKeySequence(control | Qt::SHIFT | Qt::Key_1)};
 }
 
 static QString bindingKey(int action) { return QString("shortcuts/%1").arg(action); }

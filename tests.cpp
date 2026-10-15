@@ -279,7 +279,7 @@ private slots:
         const auto translate = int(HotkeyAction::Translate);
         const auto control = defaults[0].key[0].keyboardModifiers() & ~Qt::ShiftModifier;
         const Shortcut legacy(QKeySequence(QKeyCombination(control, Qt::Key_D)));
-        QCOMPARE(defaults[translate], Shortcut(QKeySequence(QKeyCombination(control | Qt::ShiftModifier, Qt::Key_6))));
+        QCOMPARE(defaults[translate], Shortcut(QKeySequence(QKeyCombination(control | Qt::ShiftModifier, Qt::Key_1))));
         QVERIFY(Hotkeys::validate(defaults).isEmpty());
         QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
         // preview.7 saved Control+D as the Dictionary default without a settings version.
