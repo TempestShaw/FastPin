@@ -574,6 +574,30 @@ private slots:
         QCOMPARE(QApplication::clipboard()->text(), QString("#123456"));
     }
 
+    void colorCopyCompletesCaptureInDisplayedFormat()
+    {
+        ScreenFrame frame{QImage(640, 480, QImage::Format_RGB32), QRect(0, 0, 320, 240), 2};
+        frame.image.fill(QColor("#123456"));
+        CaptureOverlay overlay(frame); overlay.show();
+        QSignalSpy copied(&overlay, SIGNAL(colorCopied(QString)));
+        QVERIFY(copied.isValid());
+        QSignalSpy accepted(&overlay, &CaptureOverlay::accepted), ocr(&overlay, &CaptureOverlay::ocrRequested);
+        QTest::keyClick(&overlay, Qt::Key_C);
+        QCOMPARE(copied.size(), 1);
+        QCOMPARE(copied[0][0].toString(), QString("#123456"));
+        QCOMPARE(QApplication::clipboard()->text(), copied[0][0].toString());
+        QTest::keyClick(&overlay, Qt::Key_Shift);
+        QTest::keyClick(&overlay, Qt::Key_C);
+        QCOMPARE(copied.size(), 2);
+        QCOMPARE(copied[1][0].toString(), QString("18, 52, 86"));
+        QCOMPARE(QApplication::clipboard()->text(), copied[1][0].toString());
+        QTest::keyClick(&overlay, Qt::Key_Shift);
+        QTest::keyClick(&overlay, Qt::Key_C);
+        QCOMPARE(copied.size(), 3);
+        QCOMPARE(copied[2][0].toString(), QString("#123456"));
+        QCOMPARE(accepted.size(), 0); QCOMPARE(ocr.size(), 0);
+    }
+
     void windowDetectionAndTabKeepManualSelection()
     {
         ScreenFrame frame{QImage(640, 480, QImage::Format_RGB32), QRect(-320, 0, 320, 240), 2};

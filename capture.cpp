@@ -407,7 +407,9 @@ void CaptureOverlay::keyPressEvent(QKeyEvent *e)
     else if (e->key() == Qt::Key_T) setTool(Tool::Text);
     else if (e->key() == Qt::Key_C) {
         const auto color = frame.colorAt(pointer);
-        QApplication::clipboard()->setText(hex ? color.name().toUpper() : QString("%1, %2, %3").arg(color.red()).arg(color.green()).arg(color.blue()));
+        const QString code = hex ? color.name().toUpper() : QString("%1, %2, %3").arg(color.red()).arg(color.green()).arg(color.blue());
+        QApplication::clipboard()->setText(code);
+        emit colorCopied(code);
     } else if (e->key() == Qt::Key_Shift) { hex = !hex; update(magnifierRect(pointer)); }
     else if (e->key() >= Qt::Key_Left && e->key() <= Qt::Key_Down) {
         QPointF delta;

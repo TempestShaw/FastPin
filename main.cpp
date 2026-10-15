@@ -395,6 +395,11 @@ private:
                 connect(overlay, &CaptureOverlay::ocrRequested, this, [this, quick](QImage image) {
                     finishCapture(); ocr(std::move(image), quick);
                 });
+                connect(overlay, &CaptureOverlay::colorCopied, this, [this](QString color) {
+                    finishCapture();
+                    status->setText("Color copied: " + color);
+                    tray.showMessage("Color copied", color, QSystemTrayIcon::Information, 2000);
+                });
                 connect(overlay, &CaptureOverlay::detectionModeChanged, this, [this, overlay](bool elementMode) {
                     if (elementMode && !elementAccessAllowed(false)) {
                         finishCapture();

@@ -44,6 +44,7 @@ public:
 signals:
     void accepted(QImage image, QPoint position, bool clipboardOnly);
     void ocrRequested(QImage image);
+    void colorCopied(QString color);
     void detectionModeChanged(bool elementMode);
     void canceled();
 protected:
