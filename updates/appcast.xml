@@ -1,8 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>FastPin for macOS</title>
         <description>Signed FastPin updates</description>
         <language>en</language>
+        <item>
+            <title>0.1.0-preview.8</title>
+            <pubDate>Thu, 15 Oct 2026 21:46:23 +0000</pubDate>
+            <link>https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.8</link>
+            <sparkle:version>37</sparkle:version>
+            <sparkle:shortVersionString>0.1.0-preview.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion></sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.8/FastPin-macOS-arm64.zip" length="32688024" type="application/octet-stream" sparkle:edSignature="gQ5chEWP9t6+AzlA+4NLloSAluSTE0pjQJHkeVTsouUWK67tD+avQ+wDzHQOuX6gjH/W664BIoU5nzd3J6iDAw=="/>
+        </item>
     </channel>
 </rss>
