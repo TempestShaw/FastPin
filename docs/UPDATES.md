@@ -15,7 +15,7 @@ Push a new `v*` tag after the change is merged to main. The build workflow sets 
 For a manual release, configure both `FASTPIN_VERSION` and an increasing `FASTPIN_BUILD_VERSION`, package/sign the app, then run:
 
 ```sh
-./make-update-feed.sh build path/to/FastPin-macOS-arm64.zip v0.1.0-preview.7 build/update-feed
+./make-update-feed.sh build path/to/FastPin-macOS-arm64.zip v0.1.0-preview.8 build/update-feed
 ```
 
 Upload the ZIP under the exact versioned release URL in the generated feed, then commit `build/update-feed/appcast.xml` as `updates/appcast.xml`. Do not publish an update before its download is available. `release-macos.sh` handles Developer ID signing/notarization; CI development previews remain ad hoc signed and may require regranting macOS permissions after replacement. Sparkle signatures authenticate updates but do not replace notarization or a stable app signing identity.
