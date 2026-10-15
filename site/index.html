@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FastPin — Capture, annotate, pin</title>
+  <meta name="description" content="FastPin pins screenshots above your work, translates text in place and copies text from the screen. Free and open source for macOS and Windows.">
+  <meta name="theme-color" content="#151B1C">
+  <meta property="og:title" content="FastPin — Capture, annotate, pin">
+  <meta property="og:description" content="Pin a screenshot above your work. Translate or copy text from anywhere on screen.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <div class="wrap nav-row">
+      <a class="brand" href="#main" aria-label="FastPin home">
+        <img src="assets/app-icon.svg" alt="" width="32" height="32">
+        <span>FastPin</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#features">Features</a>
+        <a href="#shortcuts">Shortcuts</a>
+        <a href="https://github.com/TempestShaw/FastPin">GitHub</a>
+      </nav>
+      <a class="button button-small" href="#download">Download</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span>Free · Open source · macOS &amp; Windows</p>
+        <h1>Pin what matters.<br><span class="accent">Keep working.</span></h1>
+        <p class="lede">Select any part of your screen, mark it up, and keep it floating above your work. Translate or copy text from anywhere with one shortcut.</p>
+        <div class="hero-actions">
+          <a class="button" href="#download" data-primary-download>Download FastPin</a>
+          <a class="button button-ghost" href="#features">See what it does</a>
+        </div>
+        <p class="fineprint" data-release-line>Latest preview · No account, no tracking</p>
+      </div>
+
+      <div class="demo" aria-hidden="true">
+        <div class="desk">
+          <div class="window">
+            <div class="window-bar"><i></i><i></i><i></i><span>Q3 planning.pdf</span></div>
+            <div class="window-body">
+              <div class="doc-title">Launch checklist</div>
+              <div class="doc-line w80"></div>
+              <div class="doc-line w60"></div>
+              <div class="chart">
+                <b style="--h:38%"></b><b style="--h:62%"></b><b style="--h:48%"></b><b style="--h:84%"></b><b style="--h:70%"></b>
+              </div>
+              <div class="doc-line w70"></div>
+              <div class="doc-line w40"></div>
+            </div>
+            <div class="selection">
+              <span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>
+              <span class="size">412 × 236</span>
+            </div>
+            <div class="toolbar">
+              <span class="tool on">✎</span><span class="tool">↗</span><span class="tool">▢</span><span class="tool">T</span><span class="swatch"></span>
+            </div>
+          </div>
+          <div class="pin">
+            <div class="pin-chart">
+              <b style="--h:38%"></b><b style="--h:62%"></b><b style="--h:48%"></b><b style="--h:84%"></b><b style="--h:70%"></b>
+            </div>
+            <div class="pin-arrow"></div>
+            <div class="pin-badge">Pinned · 100%</div>
+          </div>
+          <div class="keys-toast"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>2</kbd></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="steps wrap" aria-label="How it works">
+      <div class="step"><span class="num">1</span><div><h3>Select</h3><p>Drag a region, or click a window or element. Tab switches detection.</p></div></div>
+      <div class="step"><span class="num">2</span><div><h3>Mark up</h3><p>P pen, A arrow, R rectangle, T text. Undo and redo as you go.</p></div></div>
+      <div class="step"><span class="num">3</span><div><h3>Pin</h3><p>Press Space. Drag to move, scroll to zoom, Space on hover for tools.</p></div></div>
+    </section>
+
+    <section id="features" class="section wrap">
+      <div class="section-head">
+        <p class="eyebrow">Features</p>
+        <h2>Small tool. Everything you reach for.</h2>
+      </div>
+
+      <div class="bento">
+        <article class="tile tile-translate">
+          <div class="tile-text">
+            <h3>Translate in place</h3>
+            <p>Tap <kbd data-key="ctrl">Ctrl</kbd> twice, select text, release. A card shows the meaning right where you are. Your clipboard stays untouched.</p>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-head"><strong>deadline</strong><span class="mock-icons">🔊 ⧉ ✕</span></div>
+            <p lang="zh-Hant">截止期限，最後期限，期限，死線，限期</p>
+            <div class="mock-card-foot"><span>CC-CEDICT · Offline</span><span class="pill">Online</span></div>
+          </div>
+        </article>
+
+        <article class="tile tile-ocr">
+          <div class="tile-text">
+            <h3>Copy text from the screen</h3>
+            <p>Select any region and its text lands on your clipboard. Recognition runs on your device.</p>
+          </div>
+          <div class="mock-ocr">
+            <div class="ocr-box"><span>Invoice #2024-118</span><span>Due 30 Nov</span></div>
+            <div class="toast">✓ Copied 30 characters</div>
+          </div>
+        </article>
+
+        <article class="tile tile-color">
+          <div class="tile-text">
+            <h3>Pick any pixel</h3>
+            <p>Hover and press C. Shift switches HEX and RGB; arrow keys move one pixel.</p>
+          </div>
+          <div class="mock-loupe">
+            <div class="loupe" data-loupe></div>
+            <span class="chip"><i></i>#19D98A</span>
+          </div>
+        </article>
+
+        <article class="tile tile-markup">
+          <div class="tile-text">
+            <h3>Mark it up, then edit again</h3>
+            <p>Pen, arrow, rectangle and text, in any color. Click existing text to change it.</p>
+          </div>
+          <div class="mock-toolbar">
+            <span class="tool on">✎</span><span class="tool">↗</span><span class="tool">▢</span><span class="tool">T</span>
+            <span class="sep"></span>
+            <span class="swatch" style="--c:#FF5A65"></span><span class="swatch" style="--c:#19D98A"></span><span class="swatch" style="--c:#287CF4"></span>
+          </div>
+        </article>
+
+        <article class="tile tile-restore">
+          <div class="tile-text">
+            <h3>Bring it back</h3>
+            <p>Closed a pin too soon? Restore the last image with its annotations and zoom.</p>
+          </div>
+          <div class="mock-restore">
+            <div class="thumb"></div>
+            <div><strong>Restore last image</strong><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>4</kbd></span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="shortcuts" class="section section-dark">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Shortcuts</p>
+          <h2>One hand. No reaching.</h2>
+          <p class="section-lede">Every default sits under your left hand. Change any of them in Settings, including mouse side buttons.</p>
+        </div>
+        <ul class="shortcut-list">
+          <li class="featured"><span class="label">Translate</span><h3>Tap Control twice</h3><span class="keys"><kbd data-key="control-cap"><b></b>Ctrl</kbd><kbd data-key="control-cap"><b></b>Ctrl</kbd></span><span class="hint">Or <kbd data-key="ctrl">Ctrl</kbd> <kbd data-key="shift">Shift</kbd> <kbd>1</kbd>. Control used with another key never counts.</span></li>
+          <li><span class="label">Capture screenshot</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>2</kbd></span></li>
+          <li><span class="label">Paste image as pin</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>3</kbd></span></li>
+          <li><span class="label">Restore last image</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>4</kbd></span></li>
+          <li><span class="label">Copy text from screen</span><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>5</kbd></span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section wrap privacy" aria-label="Privacy">
+      <div class="privacy-item"><strong>On-device OCR</strong><span>Text recognition never leaves your computer.</span></div>
+      <div class="privacy-item"><strong>Offline dictionary</strong><span>Words use bundled CC-CEDICT. Only sentences go online, to MyMemory.</span></div>
+      <div class="privacy-item"><strong>No account</strong><span>No sign-in, no API key, no LLM.</span></div>
+      <div class="privacy-item"><strong>MIT licensed</strong><span>Read the code, file an issue, send a fix.</span></div>
+    </section>
+
+    <section id="download" class="section wrap">
+      <div class="section-head">
+        <p class="eyebrow">Download</p>
+        <h2>Get FastPin</h2>
+        <p class="section-lede" data-release-note>Free preview builds. <a href="https://github.com/TempestShaw/FastPin/releases">All releases and notes ↗</a></p>
+      </div>
+      <div class="downloads">
+        <article class="download" data-os="mac">
+          <div class="download-head">
+            <h3>macOS</h3>
+            <span class="req">macOS 14+ · Apple Silicon</span>
+          </div>
+          <a class="button" href="https://github.com/TempestShaw/FastPin/releases" data-asset="FastPin-macOS.dmg">Download for Mac</a>
+          <p>Open the DMG and drag FastPin into Applications. It lives in the menu bar and updates itself.</p>
+          <details>
+            <summary>Install notes</summary>
+            <img src="assets/install-preview.svg" alt="Drag FastPin into Applications" loading="lazy">
+            <p>Previews are not notarized yet. If macOS blocks the first launch, follow <a href="https://support.apple.com/en-us/102445">Apple's instructions</a>. Allow Screen Recording when asked; Accessibility enables Element detection, mouse shortcuts and double-tap Control.</p>
+          </details>
+        </article>
+        <article class="download" data-os="windows">
+          <div class="download-head">
+            <h3>Windows</h3>
+            <span class="req">Windows 10 2004+ / 11 · x64</span>
+          </div>
+          <a class="button button-ghost" href="https://github.com/TempestShaw/FastPin/releases" data-asset="FastPin-Windows-x64.zip">Download for Windows</a>
+          <p>Extract the ZIP into a permanent folder, then register it once and launch from Start.</p>
+          <details>
+            <summary>Install notes</summary>
+            <div class="install-pair">
+              <img src="assets/extract-zip.svg" alt="Extract the FastPin ZIP" loading="lazy">
+              <img src="assets/developer-mode.svg" alt="Turn on Developer Mode" loading="lazy">
+            </div>
+            <p>Turn on Developer Mode, open PowerShell in the folder and run <code>Add-AppxPackage -Register "$PWD\AppxManifest.xml"</code>. Windows updates are manual for now.</p>
+          </details>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <span class="brand brand-small"><img src="assets/app-icon.svg" alt="" width="22" height="22">FastPin</span>
+      <span>MIT licensed · Dictionary data CC BY-SA 4.0 (CC-CEDICT)</span>
+      <span class="footer-links">
+        <a href="https://github.com/TempestShaw/FastPin">Source</a>
+        <a href="https://github.com/TempestShaw/FastPin/issues">Feedback</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
