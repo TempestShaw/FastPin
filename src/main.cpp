@@ -1,3 +1,4 @@
+#include "singleinstance.h"
 #include "capture.h"
 #include "hotkey.h"
 #include "history.h"
@@ -313,7 +314,14 @@ private:
     {
         nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
             [this] { setDoubleLeftShift(); refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); },
-            [this](bool enabled) { applyDoubleControl(enabled); });
+            [this](bool enabled) { applyDoubleControl(enabled); }, [this] {
+                auto state = [this](const char *key, bool active) {
+                    return !settings.value(key, true).toBool() ? "Disabled in settings" : active ? "Listening" : "Unavailable";
+                };
+                return QString("Double Control: %1\nDouble left Shift: %2\nShortcut recording: %3\n")
+                    .arg(state(doubleControlSetting, bool(stopDoubleControl)), state(doubleLeftShiftSetting, bool(stopDoubleLeftShift)),
+                         hotkeys.isSuspended() ? "Suspended" : "Active");
+            });
         applicationMenuBar = std::make_unique<QMenuBar>();
         auto *applicationMenu = applicationMenuBar->addMenu("FastPin");
         applicationMenu->addAction("About FastPin", this, [this] { nativeSettings->show(MacSettings::About); })->setMenuRole(QAction::AboutRole);
@@ -656,7 +664,19 @@ int main(int argc, char **argv)
     app.setApplicationVersion(QStringLiteral(FASTPIN_VERSION));
     app.setQuitOnLastWindowClosed(false);
     app.setWindowIcon(QIcon(":/brand/app-icon.png"));
+    SingleInstance instance(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+    if (!instance.error().isEmpty()) { qCritical("%s", qPrintable(instance.error())); return 1; }
+    if (!instance.isPrimary()) {
+        if (instance.forward(app.arguments().mid(1))) return 0;
+        qCritical("FastPin is already running but did not respond. No second instance was started.");
+        return 1;
+    }
     Controller controller;
+    QObject::connect(&instance, &SingleInstance::requested, &controller, [&](const QStringList &arguments) {
+        bool image = false;
+        for (const auto &argument : arguments) if (!argument.startsWith('-')) { controller.openImage(argument); image = true; }
+        if (arguments.contains("--settings") || (!image && !arguments.contains("--background"))) controller.showPreferences();
+    });
     bool openingImage = false;
     for (const auto &argument : app.arguments().mid(1)) {
         if (!argument.startsWith('-')) { openingImage = true; controller.openImage(argument); }

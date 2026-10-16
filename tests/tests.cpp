@@ -1,3 +1,4 @@
+#include "singleinstance.h"
 #include "capture.h"
 #include "pin.h"
 #include "texteditor.h"
@@ -124,6 +125,20 @@ private slots:
         QCOMPARE(captureTranslation.count(), 1); QCOMPARE(captureOcr.count(), 0);
         QTest::keyClick(&capture, Qt::Key_O); QCOMPARE(captureOcr.count(), 1);
         capture.findChild<QToolButton *>("translate")->click(); QCOMPARE(captureTranslation.count(), 2);
+    }
+
+    void singleInstanceForwardsAndReleasesOwnership()
+    {
+        QTemporaryDir dir;
+        {
+            SingleInstance first(dir.path()); QVERIFY2(first.isPrimary(), qPrintable(first.error()));
+            QSignalSpy requests(&first, &SingleInstance::requested);
+            SingleInstance second(dir.path()); QVERIFY(!second.isPrimary()); QVERIFY(second.error().isEmpty());
+            QVERIFY(second.forward({"--settings", "/tmp/image with spaces.png"}));
+            QTRY_COMPARE(requests.count(), 1);
+            QCOMPARE(requests.first().first().toStringList(), (QStringList{"--settings", "/tmp/image with spaces.png"}));
+        }
+        SingleInstance restarted(dir.path()); QVERIFY(restarted.isPrimary());
     }
 
     void onboardingCompletionRequiresFinishingAndCanBeReopened()

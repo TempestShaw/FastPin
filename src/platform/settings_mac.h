@@ -10,10 +10,11 @@ class CaptureHistory;
 
 class MacSettings {
 public:
-    enum Page { Settings, Shortcuts, About };
+    enum Page { Settings, Shortcuts, About, Diagnostics };
     MacSettings(Hotkeys &hotkeys, QSettings &settings, CaptureHistory &history,
                 std::function<void()> shortcutsChanged, std::function<void()> historyChanged,
-                std::function<void(bool)> doubleControlChanged = {});
+                std::function<void(bool)> doubleControlChanged = {},
+                std::function<QString()> gestureDiagnostics = {});
     ~MacSettings();
     void show(Page page = Settings);
     void hide();

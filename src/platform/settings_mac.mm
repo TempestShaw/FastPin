@@ -2,10 +2,13 @@
 #include "hotkey.h"
 #include "history.h"
 #include "doubletap.h"
+#include "platform.h"
+#include "capture.h"
 
 #include <QCoreApplication>
 #import <AppKit/AppKit.h>
 #import <Sparkle/Sparkle.h>
+#import <Security/Security.h>
 
 static NSString *text(const QString &value) { return value.toNSString(); }
 
@@ -146,6 +149,8 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     CaptureHistory *history;
     std::function<void()> shortcutsChanged, historyChanged;
     std::function<void(bool)> doubleControlChanged;
+    std::function<QString()> gestureDiagnostics;
+    NSTextView *diagnostics;
     NSArray<FastPinShortcutButton *> *shortcutButtons;
     NSTextField *feedback, *updateStatus;
     NSButton *remember, *automaticChecks, *automaticDownloads, *updateButton;
@@ -156,6 +161,7 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
 }
 - (void)finishRecording;
 - (void)syncUpdates;
+- (void)refreshDiagnostics:(id)sender;
 - (void)startUpdater;
 - (void)checkForUpdates:(id)sender;
 - (void)quit:(id)sender;
@@ -179,7 +185,7 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     self.window = window;
     FastPinSettingsTabs *nativeTabs = [[FastPinSettingsTabs alloc] init];
     __weak FastPinSettingsController *weakSelf = self;
-    nativeTabs->selectionChanged = [weakSelf] { [weakSelf finishRecording]; };
+    nativeTabs->selectionChanged = [weakSelf] { [weakSelf finishRecording]; [weakSelf refreshDiagnostics:nil]; };
     tabs = nativeTabs;
     tabs.tabStyle = NSTabViewControllerTabStyleToolbar;
 
@@ -249,6 +255,19 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     [tabs addChildViewController:page(@"About", @"info.circle", stack(@[identity,
         label(@"Capture ideas. Keep them in view.\n© 2026 FastPin contributors", YES), separator,
         automaticChecks, automaticDownloads, stack(@[updateButton, notes], NSUserInterfaceLayoutOrientationHorizontal), updateStatus]))];
+    diagnostics = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 540, 300)];
+    diagnostics.editable = NO; diagnostics.selectable = YES;
+    diagnostics.font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+    diagnostics.autoresizingMask = NSViewWidthSizable;
+    NSScrollView *report = [[NSScrollView alloc] init]; report.documentView = diagnostics; report.hasVerticalScroller = YES;
+    [report.widthAnchor constraintEqualToConstant:540].active = YES;
+    [report.heightAnchor constraintEqualToConstant:300].active = YES;
+    NSButton *refresh = [NSButton buttonWithTitle:@"Recheck" target:self action:@selector(refreshDiagnostics:)];
+    NSButton *copy = [NSButton buttonWithTitle:@"Copy Diagnostics" target:self action:@selector(copyDiagnostics:)];
+    [tabs addChildViewController:page(@"Diagnostics", @"stethoscope", stack(@[
+        label(@"Permissions and Shortcuts"), report,
+        label(@"No screenshots, clipboard contents or recognized text are included.", YES),
+        stack(@[refresh, copy], NSUserInterfaceLayoutOrientationHorizontal)]))];
     for (NSTabViewItem *item in tabs.tabViewItems)
         item.image = [NSImage imageWithSystemSymbolName:item.viewController.representedObject accessibilityDescription:item.label];
     window.contentViewController = tabs;
@@ -256,6 +275,45 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
         name:NSWindowDidResignKeyNotification object:window];
     [window center];
     [self syncUpdates];
+}
+- (void)refreshDiagnostics:(id)sender
+{
+    if (!diagnostics) return;
+    NSString *requirementText = @"Unavailable";
+    NSString *team = @"Not set";
+    SecCodeRef code = nullptr;
+    OSStatus signature = SecCodeCopySelf(kSecCSDefaultFlags, &code);
+    if (signature == errSecSuccess) {
+        signature = SecCodeCheckValidity(code, kSecCSDefaultFlags, nullptr);
+        SecRequirementRef requirement = nullptr;
+        if (SecCodeCopyDesignatedRequirement(code, kSecCSDefaultFlags, &requirement) == errSecSuccess) {
+            CFStringRef value = nullptr;
+            if (SecRequirementCopyString(requirement, kSecCSDefaultFlags, &value) == errSecSuccess) requirementText = CFBridgingRelease(value);
+            CFRelease(requirement);
+        }
+        CFDictionaryRef info = nullptr;
+        if (SecCodeCopySigningInformation(code, kSecCSSigningInformation, &info) == errSecSuccess) {
+            NSDictionary *values = CFBridgingRelease(info);
+            team = values[(__bridge NSString *)kSecCodeInfoTeamIdentifier] ?: @"Not set";
+        }
+        CFRelease(code);
+    }
+    auto allowed = [](bool value) { return value ? "Allowed" : "Not allowed"; };
+    QString report = QString("FastPin %1 (build %2)\nmacOS %3\nPID: %4\nExecutable: %5\nBundle ID: %6\nTeam: %7\nSignature check: %8\nRequirement: %9\n\nScreen Recording: %10\nAccessibility: %11\nInput Monitoring: %12\n")
+        .arg(QCoreApplication::applicationVersion(), QString::fromNSString([NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"Unknown"),
+             QString::fromNSString(NSProcessInfo.processInfo.operatingSystemVersionString))
+        .arg(QCoreApplication::applicationPid()).arg(QCoreApplication::applicationFilePath(),
+             QString::fromNSString(NSBundle.mainBundle.bundleIdentifier ?: @"Unknown"), QString::fromNSString(team))
+        .arg(signature).arg(QString::fromNSString(requirementText), allowed(screenCaptureAllowed(false)),
+             allowed(elementAccessAllowed(false)), allowed(doubleControlAccessAllowed(false)));
+    if (gestureDiagnostics) report += gestureDiagnostics();
+    diagnostics.string = text(report);
+}
+- (void)copyDiagnostics:(id)sender
+{
+    [self refreshDiagnostics:nil];
+    [NSPasteboard.generalPasteboard clearContents];
+    [NSPasteboard.generalPasteboard setString:diagnostics.string forType:NSPasteboardTypeString];
 }
 - (void)finishRecording
 {
@@ -357,7 +415,7 @@ struct MacSettings::Impl { FastPinSettingsController *controller; };
 
 MacSettings::MacSettings(Hotkeys &hotkeys, QSettings &settings, CaptureHistory &history,
                          std::function<void()> shortcutsChanged, std::function<void()> historyChanged,
-                         std::function<void(bool)> doubleControlChanged)
+                         std::function<void(bool)> doubleControlChanged, std::function<QString()> gestureDiagnostics)
     : impl(std::make_unique<Impl>())
 {
     auto *controller = [[FastPinSettingsController alloc] init];
@@ -365,6 +423,7 @@ MacSettings::MacSettings(Hotkeys &hotkeys, QSettings &settings, CaptureHistory &
     controller->hotkeys = &hotkeys; controller->settings = &settings; controller->history = &history;
     controller->shortcutsChanged = std::move(shortcutsChanged); controller->historyChanged = std::move(historyChanged);
     controller->doubleControlChanged = std::move(doubleControlChanged);
+    controller->gestureDiagnostics = std::move(gestureDiagnostics);
     [controller startUpdater];
 }
 
@@ -380,7 +439,7 @@ void MacSettings::show(Page page)
     if (!controller.window) [controller loadWindow];
     [controller finishRecording];
     controller->tabs.selectedTabViewItemIndex = page;
-    [controller syncUpdates]; [controller showWindow:nil];
+    [controller syncUpdates]; [controller refreshDiagnostics:nil]; [controller showWindow:nil];
     [NSApp activateIgnoringOtherApps:YES];
 }
 

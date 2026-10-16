@@ -22,6 +22,13 @@ static NSButton *buttonWithLabel(NSView *view, NSString *title)
     return nil;
 }
 
+static NSTextView *diagnosticText(NSView *view)
+{
+    if ([view isKindOfClass:NSTextView.class]) return (NSTextView *)view;
+    for (NSView *child in view.subviews) if (auto *found = diagnosticText(child)) return found;
+    return nil;
+}
+
 static NSEvent *key(unsigned short code, NSEventModifierFlags flags = 0)
 {
     return [NSEvent keyEventWithType:NSEventTypeKeyDown location:NSZeroPoint modifierFlags:flags
@@ -156,7 +163,7 @@ private slots:
         for (NSWindow *candidate in NSApp.windows) if ([candidate.title isEqualToString:@"FastPin Settings"]) window = candidate;
         QVERIFY(window);
         auto *tabs = (NSTabViewController *)window.contentViewController;
-        QCOMPARE(tabs.tabViewItems.count, NSUInteger(3));
+        QCOMPARE(tabs.tabViewItems.count, NSUInteger(4));
         QCOMPARE(tabs.tabStyle, NSTabViewControllerTabStyleToolbar);
         QVERIFY(window.toolbar);
         auto *record = buttonWithLabel(window.contentView, @"Capture screenshot shortcut");
@@ -222,6 +229,28 @@ private slots:
         [remember performClick:nil];
         QVERIFY(history.enabled);
         QCOMPARE(settings.value("recovery/enabled").toBool(), true);
+    }
+
+    void diagnosticsReportsPermissionsIdentityAndLiveMonitorState()
+    {
+        Hotkeys hotkeys; QVERIFY(hotkeys.apply(bindings).isEmpty());
+        QSettings settings;
+        CaptureHistory history(directory.filePath("diagnostics-image.png"));
+        QString monitor = "Double left Shift: Listening";
+        MacSettings preferences(hotkeys, settings, history, [] {}, [] {}, {}, [&] { return monitor; });
+        preferences.show(MacSettings::Diagnostics);
+        NSWindow *window = nil;
+        for (NSWindow *candidate in NSApp.windows) if ([candidate.title isEqualToString:@"FastPin Settings"] && candidate.visible) window = candidate;
+        QVERIFY(window);
+        auto *report = diagnosticText(window.contentView); QVERIFY(report);
+        QString content = QString::fromNSString(report.string);
+        QVERIFY(content.contains("Executable:")); QVERIFY(content.contains("Signature check:"));
+        QVERIFY(content.contains("Accessibility:")); QVERIFY(content.contains("Input Monitoring:"));
+        QVERIFY(content.contains(monitor));
+        monitor = "Double left Shift: Disabled in settings";
+        auto *refresh = buttonWithLabel(window.contentView, @"Recheck"); QVERIFY(refresh);
+        [refresh performClick:nil];
+        QVERIFY(QString::fromNSString(report.string).contains(monitor));
     }
 
     void leftShiftToggleIsSavedAndRefreshesMonitor()
