@@ -36,7 +36,7 @@ Capture something new, pin an image from your clipboard, or pick up where you le
 
 ## Your first capture
 
-1. Press **Ctrl+Shift+2**, or choose **Capture screenshot** from the menu bar or tray. Drag to select a region. Press **Tab** to switch between **Window** and **Element** detection.
+1. On macOS, **double-tap left Shift** (alone, without typing); otherwise press **Ctrl+Shift+2**, or choose **Capture screenshot** from the menu bar or tray. Drag to select a region. Press **Tab** to switch between **Window** and **Element** detection.
 2. Mark what matters: **P** for pen, **A** for arrow, **R** for rectangle, or **T** for text. With Text selected, click the image and type directly on it. Click existing text to edit it again. **Enter** finishes text; **Shift+Enter** adds a line.
 3. Press **Space** or **Enter** to pin the image. Drag to move it and scroll to zoom. Its toolbar starts hidden: hover over the pin and press **Space** to show or hide the tools.
 

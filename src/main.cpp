@@ -36,7 +36,11 @@
 
 class Controller : public QWidget {
 public:
-    ~Controller() override { setDoubleControl(false); }
+    ~Controller() override { setDoubleControl(false);
+#ifdef Q_OS_MACOS
+        if (stopDoubleLeftShift) stopDoubleLeftShift();
+#endif
+    }
 
     Controller()
         : hotkeys(this), tray(this), history(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/last-image.png", this)
@@ -169,11 +173,17 @@ public:
         for (int i = 0; i < hotkeyActionCount; ++i) if (edits[i]) edits[i]->setBinding(bindings[i]);
         if (!error.isEmpty()) { setSettingsFeedback(error); status->setText("A shortcut is unavailable. Change it in Settings."); }
         applyDoubleControl(settings.value(doubleControlSetting, true).toBool());
+#ifdef Q_OS_MACOS
+        setDoubleLeftShift();
+#endif
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
             QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
             // Input Monitoring may have been granted while FastPin was in the background.
             if (!stopDoubleControl && settings.value(doubleControlSetting, true).toBool()) setDoubleControl(true);
+#ifdef Q_OS_MACOS
+            if (!stopDoubleLeftShift) setDoubleLeftShift();
+#endif
         });
         qApp->installEventFilter(this);
     }
@@ -193,6 +203,9 @@ public:
         connect(welcome, &Onboarding::captureRequested, this, [this] { capture(); });
         connect(welcome, &Onboarding::permissionsReady, this, [this] {
             setDoubleControl(settings.value(doubleControlSetting, true).toBool());
+#ifdef Q_OS_MACOS
+            setDoubleLeftShift();
+#endif
             refreshShortcuts();
         });
         connect(welcome, &Onboarding::preferencesRequested, this, [this] {
@@ -299,7 +312,7 @@ private:
     void setupNativeSettings()
     {
         nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
-            [this] { refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); },
+            [this] { setDoubleLeftShift(); refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); },
             [this](bool enabled) { applyDoubleControl(enabled); });
         applicationMenuBar = std::make_unique<QMenuBar>();
         auto *applicationMenu = applicationMenuBar->addMenu("FastPin");
@@ -367,12 +380,30 @@ private:
             actions[i]->setText(hotkeyActionName(i) + (bindings[i].buttons ? " · " + bindings[i].toString() : QString()));
             actionKeys[i]->setText(bindings[i].toString(QKeySequence::NativeText));
         }
+#ifdef Q_OS_MACOS
+        if (stopDoubleLeftShift) {
+            auto *captureKeys = actionKeys[int(HotkeyAction::Capture)];
+            captureKeys->setText("Left Shift ×2" + (captureKeys->text().isEmpty() ? QString() : " · " + captureKeys->text()));
+        }
+#endif
         if (stopDoubleControl) {
             auto *translateKeys = actionKeys[int(HotkeyAction::Translate)];
             const QString tap = QKeySequence(Qt::META).toString(QKeySequence::NativeText).remove('+');
             translateKeys->setText(tap + tap + (translateKeys->text().isEmpty() ? QString() : " · " + translateKeys->text()));
         }
     }
+
+#ifdef Q_OS_MACOS
+    void setDoubleLeftShift()
+    {
+        if (stopDoubleLeftShift) { stopDoubleLeftShift(); stopDoubleLeftShift = {}; }
+        if (!settings.value(doubleLeftShiftSetting, true).toBool()) return;
+        QPointer<Controller> self(this);
+        stopDoubleLeftShift = watchDoubleLeftShift([self] {
+            if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Capture);
+        });
+    }
+#endif
 
     void setDoubleControl(bool enabled)
     {
@@ -606,6 +637,9 @@ private:
     std::function<void()> restoreCaptureFocus;
 #endif
     std::function<void()> stopDoubleControl;
+#ifdef Q_OS_MACOS
+    std::function<void()> stopDoubleLeftShift;
+#endif
     bool captureBusy = false;
     bool ocrBusy = false;
 };

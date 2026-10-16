@@ -67,3 +67,5 @@ Change capture, paste, restore, OCR, and translation bindings in Preferences. Cl
 Close or hide the control panel to leave FastPin in the menu bar/tray. Quit from its menu when finished.
 
 [Download FastPin](https://github.com/TempestShaw/FastPin/releases) · [Report an issue](https://github.com/TempestShaw/FastPin/issues)
+
+On macOS, double-tap **left Shift** alone to start capture, then select a region and press **Space** to pin. Double-tap **Control** starts translation separately. Right Shift and Shift used while typing do not trigger capture. Disable either double-tap under Settings → Shortcuts. Input Monitoring permission is required. Ctrl+S is not a default global shortcut.

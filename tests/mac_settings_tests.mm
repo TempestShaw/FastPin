@@ -29,6 +29,7 @@ static NSEvent *key(unsigned short code, NSEventModifierFlags flags = 0)
 }
 
 DoubleTapDetector::Input doubleControlInput(CGEventType type, CGEventRef event);
+DoubleTapDetector::Input doubleLeftShiftInput(CGEventType type, CGEventRef event);
 
 class MacSettingsTests : public QObject {
     Q_OBJECT
@@ -56,6 +57,42 @@ private slots:
         }
         CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, 56);
         QCOMPARE(doubleControlInput(kCGEventFlagsChanged, event), Input::Other);
+        CFRelease(event);
+    }
+
+    void leftShiftDoubleTapRejectsTypingRightShiftAndChords()
+    {
+        using Input = DoubleTapDetector::Input;
+        auto event = CGEventCreateKeyboardEvent(nullptr, 56, true);
+        DoubleTapDetector detector;
+        auto feed = [&](CGEventType type, int code, CGEventFlags flags, qint64 time) {
+            CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, code);
+            CGEventSetFlags(event, flags);
+            return detector.feed(doubleLeftShiftInput(type, event), time);
+        };
+        auto tap = [&](qint64 time) {
+            feed(kCGEventFlagsChanged, 56, kCGEventFlagMaskShift, time);
+            return feed(kCGEventFlagsChanged, 56, 0, time + 40);
+        };
+        QVERIFY(!tap(0)); QVERIFY(tap(150));
+        // Shift+A invalidates the pending tap, even when typed between taps.
+        QVERIFY(!tap(500));
+        QVERIFY(!feed(kCGEventFlagsChanged, 56, kCGEventFlagMaskShift, 650));
+        QVERIFY(!feed(kCGEventKeyDown, 0, kCGEventFlagMaskShift, 670));
+        QVERIFY(!feed(kCGEventFlagsChanged, 56, 0, 700));
+        QVERIFY(!tap(800));
+        // Right Shift and holding both Shift keys must never count as left taps.
+        detector = {};
+        for (auto time : {1000, 1150}) {
+            QVERIFY(!feed(kCGEventFlagsChanged, 60, kCGEventFlagMaskShift, time));
+            QVERIFY(!feed(kCGEventFlagsChanged, 60, 0, time + 40));
+        }
+        for (auto flags : {CGEventFlags(kCGEventFlagMaskControl), CGEventFlags(kCGEventFlagMaskAlternate), CGEventFlags(kCGEventFlagMaskCommand), CGEventFlags(4)}) {
+            detector = {};
+            QVERIFY(!tap(1500));
+            QVERIFY(!feed(kCGEventFlagsChanged, 56, kCGEventFlagMaskShift | flags, 1650));
+            QVERIFY(!feed(kCGEventFlagsChanged, 56, 0, 1690));
+        }
         CFRelease(event);
     }
 
@@ -185,6 +222,26 @@ private slots:
         [remember performClick:nil];
         QVERIFY(history.enabled);
         QCOMPARE(settings.value("recovery/enabled").toBool(), true);
+    }
+
+    void leftShiftToggleIsSavedAndRefreshesMonitor()
+    {
+        Hotkeys hotkeys; QVERIFY(hotkeys.apply(bindings).isEmpty());
+        QSettings settings; settings.remove(doubleLeftShiftSetting);
+        CaptureHistory history(directory.filePath("left-shift-image.png"));
+        int changed = 0;
+        MacSettings preferences(hotkeys, settings, history, [&] { ++changed; }, [] {});
+        preferences.show(MacSettings::Shortcuts);
+        NSWindow *window = nil;
+        for (NSWindow *candidate in NSApp.windows) if ([candidate.title isEqualToString:@"FastPin Settings"] && candidate.visible) window = candidate;
+        QVERIFY(window);
+        auto *toggle = buttonWithLabel(window.contentView, @"Double-tap left Shift to capture");
+        QVERIFY(toggle); QCOMPARE(toggle.state, NSControlStateValueOn);
+        [toggle performClick:nil];
+        QCOMPARE(settings.value(doubleLeftShiftSetting).toBool(), false);
+        [toggle performClick:nil];
+        QCOMPARE(settings.value(doubleLeftShiftSetting).toBool(), true);
+        QCOMPARE(changed, 2);
     }
 
     void doubleControlToggleIsSavedAndReported()

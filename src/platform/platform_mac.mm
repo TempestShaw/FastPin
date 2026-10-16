@@ -11,6 +11,7 @@
 #import <Vision/Vision.h>
 #import <AVFoundation/AVFoundation.h>
 #import <QuartzCore/QuartzCore.h>
+#import <IOKit/hidsystem/IOLLEvent.h>
 
 std::function<void()> pronounceText(const QString &text)
 {
@@ -149,15 +150,26 @@ DoubleTapDetector::Input doubleControlInput(CGEventType type, CGEventRef event)
     return (flags & kCGEventFlagMaskControl) ? Input::ControlDown : Input::ControlUp;
 }
 
-std::function<void()> watchDoubleControl(std::function<void()> triggered)
+DoubleTapDetector::Input doubleLeftShiftInput(CGEventType type, CGEventRef event)
+{
+    using Input = DoubleTapDetector::Input;
+    if (type != kCGEventFlagsChanged || CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode) != 56) return Input::Other;
+    const auto flags = CGEventGetFlags(event);
+    if (flags & (kCGEventFlagMaskControl | kCGEventFlagMaskAlternate | kCGEventFlagMaskCommand | NX_DEVICERSHIFTKEYMASK)) return Input::Other;
+    return (flags & kCGEventFlagMaskShift) ? Input::ControlDown : Input::ControlUp;
+}
+
+static std::function<void()> watchDoubleModifier(std::function<void()> triggered,
+    DoubleTapDetector::Input (*input)(CGEventType, CGEventRef))
 {
     if (QGuiApplication::platformName() != "cocoa" || !doubleControlAccessAllowed(false)) return {};
     struct Watch {
         DoubleTapDetector detector;
         std::function<void()> triggered;
+        DoubleTapDetector::Input (*input)(CGEventType, CGEventRef);
         CFMachPortRef tap = nullptr;
     };
-    auto *watch = new Watch{{}, std::move(triggered)};
+    auto *watch = new Watch{{}, std::move(triggered), input};
     const auto mask = CGEventMaskBit(kCGEventFlagsChanged) | CGEventMaskBit(kCGEventKeyDown) |
         CGEventMaskBit(kCGEventLeftMouseDown) | CGEventMaskBit(kCGEventRightMouseDown) | CGEventMaskBit(kCGEventOtherMouseDown);
     watch->tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, mask,
@@ -168,7 +180,7 @@ std::function<void()> watchDoubleControl(std::function<void()> triggered)
                 CGEventTapEnable(watch->tap, true);
                 return event;
             }
-            if (watch->detector.feed(doubleControlInput(type, event), qint64(CGEventGetTimestamp(event) / 1000000)))
+            if (watch->detector.feed(watch->input(type, event), qint64(CGEventGetTimestamp(event) / 1000000)))
                 QMetaObject::invokeMethod(qApp, watch->triggered, Qt::QueuedConnection);
             return event; // Observe only: never swallow or rewrite another app's input.
         }, watch);
@@ -181,6 +193,16 @@ std::function<void()> watchDoubleControl(std::function<void()> triggered)
         CFRunLoopRemoveSource(CFRunLoopGetMain(), source, kCFRunLoopCommonModes);
         CFRelease(source); CFRelease(watch->tap); delete watch;
     };
+}
+
+std::function<void()> watchDoubleControl(std::function<void()> triggered)
+{
+    return watchDoubleModifier(std::move(triggered), doubleControlInput);
+}
+
+std::function<void()> watchDoubleLeftShift(std::function<void()> triggered)
+{
+    return watchDoubleModifier(std::move(triggered), doubleLeftShiftInput);
 }
 
 ElementResult desktopElementAt(DesktopWindow window, QPointF point)

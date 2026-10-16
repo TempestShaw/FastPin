@@ -25,5 +25,7 @@ private:
 std::function<void()> watchDoubleControl(std::function<void()> triggered);
 
 #ifdef Q_OS_MACOS
+inline constexpr char doubleLeftShiftSetting[] = "capture/doubleLeftShift"; // Default: enabled.
+std::function<void()> watchDoubleLeftShift(std::function<void()> triggered);
 bool doubleControlAccessAllowed(bool prompt);
 #endif
