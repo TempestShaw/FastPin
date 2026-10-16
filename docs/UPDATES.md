@@ -18,10 +18,18 @@ For a manual release, configure both `FASTPIN_VERSION` and an increasing `FASTPI
 ./scripts/make-update-feed.sh build path/to/FastPin-macOS-arm64.zip v0.1.0-preview.8 build/update-feed
 ```
 
-Upload the ZIP and any generated `.delta` files under the exact versioned release URLs in the generated feed, then commit `build/update-feed/appcast.xml` as `updates/appcast.xml`. Do not publish an update before its download is available. `scripts/release-macos.sh` handles Developer ID signing/notarization; CI development previews remain ad hoc signed and may require regranting macOS permissions after replacement. Sparkle signatures authenticate updates but do not replace notarization or a stable app signing identity.
+Upload the ZIP and any generated `.delta` files under the exact versioned release URLs in the generated feed, then commit `build/update-feed/appcast.xml` as `updates/appcast.xml`. Do not publish an update before its download is available. `scripts/release-macos.sh` handles Developer ID signing/notarization; Tag builds require Developer ID signing and notarization, including preview tags; only untagged CI artifacts remain ad hoc signed. Sparkle signatures authenticate updates but do not replace notarization or a stable app signing identity.
 
 Older FastPin previews contain no updater. Users need one manual installation of the first updater-enabled build; subsequent signed builds can update in place. Windows updates remain manual.
 
 ## Verification
 
 `ctest --test-dir build --output-on-failure` includes the native AppKit settings lifecycle and an isolated updater probe. The updater probe uses the production Sparkle delegate, temporary CryptoKit keys, a loopback feed, a separate bundle identity and temporary settings. It proves signed download, 1 → 2 replacement/relaunch, settings retention, and rejection of an invalid archive signature. Python 3 and the Xcode Swift toolchain are needed for these macOS tests. Test keys never enter the login Keychain.
+
+## Permission continuity across updates
+
+macOS associates privacy grants with the app's designated code requirement. Ad-hoc builds change identity with their executable hash; Sparkle archive signatures do not preserve TCC grants. Public releases must keep `io.github.tempestshaw.fastpin` and the same Apple Developer team, and use the default Developer ID designated requirement (do not pin it to a leaf certificate or executable hash). See [Apple TN3127](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
+
+Configure repository variables `MACOS_SIGNING_IDENTITY` (`Developer ID Application: Name (TEAMID)`) and `MACOS_TEAM_ID`. Configure secrets `MACOS_CERTIFICATE_P12_BASE64`, `MACOS_CERTIFICATE_PASSWORD`, `APPLE_ID`, and `APPLE_APP_PASSWORD` (an app-specific password). The P12 must include the private key. CI imports it into a temporary keychain, signs nested code and the app, notarizes and staples the app and DMG, and only then generates the Sparkle feed. Missing credentials or failed notarization stop publication. Never commit certificates or credentials.
+
+The first migration from an old ad-hoc or local development build to Developer ID may require one permission repair. Subsequent releases must use the same team and identifier. Keep local development builds separate from the installed public app. Before the first public signed release, test an installed signed version A → signed version B through Sparkle and verify all three permissions and a real accessibility operation after relaunch. Existing updater tests validate replacement and archive authentication, not real TCC continuity; no signature policy can guarantee immunity to OS bugs or user-revoked permissions.

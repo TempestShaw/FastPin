@@ -58,7 +58,7 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path build/package/* -DestinationPath build/FastPin-Windows-x64.zip
       - name: Build macOS DMG (ad-hoc development artifact)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && !startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           python3 -m venv build/dmg-tools
@@ -66,6 +66,17 @@ jobs:
           codesign --force --deep --sign - build/package/FastPin.app
           FASTPIN_DMG_PYTHON="$PWD/build/dmg-tools/bin/python" ./scripts/package-dmg.sh build/package/FastPin.app build/FastPin-macOS.dmg
           ditto -c -k --sequesterRsrc --keepParent build/package/FastPin.app build/FastPin-macOS-arm64.zip
+      - name: Build Developer ID signed and notarized macOS release
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY }}
+          MACOS_TEAM_ID: ${{ vars.MACOS_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: ./scripts/release-macos-ci.sh
       - name: Sign macOS update feed
         if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
         shell: bash

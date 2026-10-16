@@ -23,6 +23,12 @@ while IFS= read -r -d '' helper; do sign "$helper"; done < <(find "$app/Contents
 while IFS= read -r -d '' framework; do sign "$framework"; done < <(find "$app/Contents/Frameworks" -depth -type d -name '*.framework' -print0)
 sign "$app"
 /usr/bin/codesign --verify --deep --strict "$app"
+bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")
+[[ "$bundle_id" == io.github.tempestshaw.fastpin ]] || { echo 'Unexpected release bundle identifier.' >&2; exit 1; }
+team=$(/usr/bin/codesign -dv "$app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+[[ -n "$team" && "$team" != 'not set' && "$identity" == *" ($team)" ]] || {
+    echo 'Signed app does not match the Developer ID team.' >&2; exit 1;
+}
 archive="$output/FastPin-macOS-$(uname -m).zip"
 ditto -c -k --sequesterRsrc --keepParent "$app" "$archive"
 xcrun notarytool submit "$archive" --keychain-profile "$profile" --wait --output-format plist > "$output/notarization.plist"
