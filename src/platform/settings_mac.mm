@@ -259,9 +259,12 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     diagnostics.editable = NO; diagnostics.selectable = YES;
     diagnostics.font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
     diagnostics.autoresizingMask = NSViewWidthSizable;
+    diagnostics.horizontallyResizable = NO;
+    diagnostics.textContainer.widthTracksTextView = YES;
+    diagnostics.textContainer.containerSize = NSMakeSize(540, CGFLOAT_MAX);
     NSScrollView *report = [[NSScrollView alloc] init]; report.documentView = diagnostics; report.hasVerticalScroller = YES;
     [report.widthAnchor constraintEqualToConstant:540].active = YES;
-    [report.heightAnchor constraintEqualToConstant:300].active = YES;
+    [report.heightAnchor constraintEqualToConstant:270].active = YES;
     NSButton *refresh = [NSButton buttonWithTitle:@"Recheck" target:self action:@selector(refreshDiagnostics:)];
     NSButton *copy = [NSButton buttonWithTitle:@"Copy Diagnostics" target:self action:@selector(copyDiagnostics:)];
     [tabs addChildViewController:page(@"Diagnostics", @"stethoscope", stack(@[
@@ -304,7 +307,7 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
              QString::fromNSString(NSProcessInfo.processInfo.operatingSystemVersionString))
         .arg(QCoreApplication::applicationPid()).arg(QCoreApplication::applicationFilePath(),
              QString::fromNSString(NSBundle.mainBundle.bundleIdentifier ?: @"Unknown"), QString::fromNSString(team))
-        .arg(signature).arg(QString::fromNSString(requirementText), allowed(screenCaptureAllowed(false)),
+        .arg(signature == errSecSuccess ? QString("Valid (0)") : QString("Failed (%1)").arg(signature)).arg(QString::fromNSString(requirementText), allowed(screenCaptureAllowed(false)),
              allowed(elementAccessAllowed(false)), allowed(doubleControlAccessAllowed(false)));
     if (gestureDiagnostics) report += gestureDiagnostics();
     diagnostics.string = text(report);
