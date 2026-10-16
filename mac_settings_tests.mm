@@ -28,6 +28,8 @@ static NSEvent *key(unsigned short code, NSEventModifierFlags flags = 0)
         timestamp:0 windowNumber:0 context:nil characters:@"s" charactersIgnoringModifiers:@"s" isARepeat:NO keyCode:code];
 }
 
+DoubleTapDetector::Input doubleControlInput(CGEventType type, CGEventRef event);
+
 class MacSettingsTests : public QObject {
     Q_OBJECT
     QTemporaryDir directory;
@@ -38,6 +40,25 @@ class MacSettingsTests : public QObject {
         return !probe.apply(bindings).isEmpty();
     }
 private slots:
+    void doubleControlMapsNativeModifierEvents()
+    {
+        using Input = DoubleTapDetector::Input;
+        auto event = CGEventCreateKeyboardEvent(nullptr, 59, true);
+        for (auto code : {59, 62}) {
+            CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, code);
+            CGEventSetFlags(event, kCGEventFlagMaskControl);
+            QCOMPARE(doubleControlInput(kCGEventFlagsChanged, event), Input::ControlDown);
+            QCOMPARE(doubleControlInput(kCGEventKeyDown, event), Input::Other);
+            CGEventSetFlags(event, kCGEventFlagMaskControl | kCGEventFlagMaskShift);
+            QCOMPARE(doubleControlInput(kCGEventFlagsChanged, event), Input::Other);
+            CGEventSetFlags(event, 0);
+            QCOMPARE(doubleControlInput(kCGEventFlagsChanged, event), Input::ControlUp);
+        }
+        CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, 56);
+        QCOMPARE(doubleControlInput(kCGEventFlagsChanged, event), Input::Other);
+        CFRelease(event);
+    }
+
     void systemVoiceProducesSpeechAudio()
     {
         auto *speech = [[AVSpeechSynthesizer alloc] init];

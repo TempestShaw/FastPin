@@ -172,7 +172,7 @@ public:
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
             QTimer::singleShot(0, this, [this] { refreshShortcutRecording(); });
-            // Accessibility may have been granted while FastPin was in the background.
+            // Input Monitoring may have been granted while FastPin was in the background.
             if (!stopDoubleControl && settings.value(doubleControlSetting, true).toBool()) setDoubleControl(true);
         });
         qApp->installEventFilter(this);
@@ -390,12 +390,12 @@ private:
     void requestDoubleControlAccess()
     {
 #ifdef Q_OS_MACOS
-        // macOS reports other apps' key events only after Accessibility is granted. Ask once.
+        // The passive event tap needs Input Monitoring permission. Ask once.
         if (QGuiApplication::platformName() != "cocoa") return;
-        status->setText("Double-tap Control needs Accessibility. Allow FastPin in System Settings → Privacy & Security → Accessibility.");
-        if (settings.value("translate/doubleControlPrompted", false).toBool()) return;
-        settings.setValue("translate/doubleControlPrompted", true);
-        QTimer::singleShot(1500, this, [this] { if (!welcome) elementAccessAllowed(true); });
+        status->setText("Double-tap Control needs Input Monitoring. Allow FastPin in System Settings → Privacy & Security → Input Monitoring, then reopen FastPin.");
+        if (settings.value("translate/doubleControlInputPrompted", false).toBool()) return;
+        settings.setValue("translate/doubleControlInputPrompted", true);
+        QTimer::singleShot(1500, this, [this] { if (!welcome) doubleControlAccessAllowed(true); });
 #else
         status->setText("Double-tap Control is unavailable. Use the Dictionary shortcut instead.");
 #endif

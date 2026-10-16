@@ -133,33 +133,54 @@ bool elementAccessAllowed(bool prompt)
     return AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
 }
 
-static DoubleTapDetector::Input doubleTapInput(NSEvent *event)
+bool doubleControlAccessAllowed(bool prompt)
+{
+    return CGPreflightListenEventAccess() || (prompt && CGRequestListenEventAccess());
+}
+
+DoubleTapDetector::Input doubleControlInput(CGEventType type, CGEventRef event)
 {
     using Input = DoubleTapDetector::Input;
-    constexpr unsigned short leftControl = 59, rightControl = 62; // kVK_Control, kVK_RightControl
-    if (event.type != NSEventTypeFlagsChanged) return Input::Other;
-    const auto flags = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
-    const bool control = event.keyCode == leftControl || event.keyCode == rightControl;
-    const bool chord = flags & (NSEventModifierFlagShift | NSEventModifierFlagOption | NSEventModifierFlagCommand);
-    if (!control || chord) return Input::Other;
-    return (flags & NSEventModifierFlagControl) ? Input::ControlDown : Input::ControlUp;
+    if (type != kCGEventFlagsChanged) return Input::Other;
+    const auto code = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+    const auto flags = CGEventGetFlags(event);
+    const bool chord = flags & (kCGEventFlagMaskShift | kCGEventFlagMaskAlternate | kCGEventFlagMaskCommand);
+    if ((code != 59 && code != 62) || chord) return Input::Other;
+    return (flags & kCGEventFlagMaskControl) ? Input::ControlDown : Input::ControlUp;
 }
 
 std::function<void()> watchDoubleControl(std::function<void()> triggered)
 {
-    // Global key monitors receive nothing until FastPin is trusted for Accessibility.
-    if (QGuiApplication::platformName() != "cocoa" || !elementAccessAllowed(false)) return {};
-    auto detector = std::make_shared<DoubleTapDetector>();
-    auto handle = ^(NSEvent *event) {
-        if (detector->feed(doubleTapInput(event), qint64(event.timestamp * 1000)))
-            QMetaObject::invokeMethod(qApp, triggered, Qt::QueuedConnection);
+    if (QGuiApplication::platformName() != "cocoa" || !doubleControlAccessAllowed(false)) return {};
+    struct Watch {
+        DoubleTapDetector detector;
+        std::function<void()> triggered;
+        CFMachPortRef tap = nullptr;
     };
-    const NSEventMask mask = NSEventMaskFlagsChanged | NSEventMaskKeyDown | NSEventMaskLeftMouseDown |
-                             NSEventMaskRightMouseDown | NSEventMaskOtherMouseDown;
-    // The global monitor sees other apps; the local one sees FastPin's own windows.
-    id global = [NSEvent addGlobalMonitorForEventsMatchingMask:mask handler:handle];
-    id local = [NSEvent addLocalMonitorForEventsMatchingMask:mask handler:^NSEvent *(NSEvent *event) { handle(event); return event; }];
-    return [global, local] { [NSEvent removeMonitor:global]; [NSEvent removeMonitor:local]; };
+    auto *watch = new Watch{{}, std::move(triggered)};
+    const auto mask = CGEventMaskBit(kCGEventFlagsChanged) | CGEventMaskBit(kCGEventKeyDown) |
+        CGEventMaskBit(kCGEventLeftMouseDown) | CGEventMaskBit(kCGEventRightMouseDown) | CGEventMaskBit(kCGEventOtherMouseDown);
+    watch->tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, mask,
+        [](CGEventTapProxy, CGEventType type, CGEventRef event, void *context) -> CGEventRef {
+            auto *watch = static_cast<Watch *>(context);
+            if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+                watch->detector = {};
+                CGEventTapEnable(watch->tap, true);
+                return event;
+            }
+            if (watch->detector.feed(doubleControlInput(type, event), qint64(CGEventGetTimestamp(event) / 1000000)))
+                QMetaObject::invokeMethod(qApp, watch->triggered, Qt::QueuedConnection);
+            return event; // Observe only: never swallow or rewrite another app's input.
+        }, watch);
+    if (!watch->tap) { delete watch; return {}; }
+    auto source = CFMachPortCreateRunLoopSource(nullptr, watch->tap, 0);
+    CFRunLoopAddSource(CFRunLoopGetMain(), source, kCFRunLoopCommonModes);
+    CGEventTapEnable(watch->tap, true);
+    return [watch, source] {
+        CFMachPortInvalidate(watch->tap);
+        CFRunLoopRemoveSource(CFRunLoopGetMain(), source, kCFRunLoopCommonModes);
+        CFRelease(source); CFRelease(watch->tap); delete watch;
+    };
 }
 
 ElementResult desktopElementAt(DesktopWindow window, QPointF point)

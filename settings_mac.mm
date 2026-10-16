@@ -221,7 +221,7 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     feedback = label(feedbackText ?: @"", YES);
     NSButton *doubleControl = [NSButton checkboxWithTitle:@"Double-tap Control to translate" target:self action:@selector(doubleControlToggled:)];
     doubleControl.state = settings->value(doubleControlSetting, true).toBool() ? NSControlStateValueOn : NSControlStateValueOff;
-    doubleControl.toolTip = @"Tap Control twice quickly to start Dictionary / translate. Needs Accessibility permission.";
+    doubleControl.toolTip = @"Tap Control twice quickly to start Dictionary / translate. Needs Input Monitoring permission.";
     [tabs addChildViewController:page(@"Shortcuts", @"keyboard", stack(@[
         label(@"Global Shortcuts"), shortcutRows, doubleControl,
         label(@"Click a shortcut, then press keys or Mouse4 / Mouse5. Hold both side buttons for a combo. Delete clears a shortcut; Escape ends recording. Use Fn for function keys when needed.", YES),

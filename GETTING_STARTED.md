@@ -6,7 +6,7 @@ Capture a piece of your screen, add a note, and keep it on your desktop.
 
 ![Drag FastPin into Applications](public/dmg/install-preview.png)
 
-**macOS preview:** macOS 14 or newer, Apple Silicon. Open the DMG and drag FastPin into Applications. This preview is not notarized. If macOS blocks its first launch, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445). Grant Screen Recording when prompted. Element detection, mouse shortcuts and double-tap Control also use Accessibility permission. Follow the first-run guide; reopen it with Getting started.
+**macOS preview:** macOS 14 or newer, Apple Silicon. Open the DMG and drag FastPin into Applications. This preview is not notarized. If macOS blocks its first launch, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445). Grant Screen Recording when prompted. Element detection and mouse shortcuts use Accessibility permission; double-tap Control uses Input Monitoring permission. Follow the first-run guide; reopen it with Getting started.
 
 ![Extract the Windows ZIP](public/windows/extract-zip.png)
 
@@ -38,7 +38,7 @@ Press Escape to cancel. If no text is found, your clipboard is kept. Change the 
 
 ## Dictionary and translation
 
-**Tap Control twice** quickly, drag around the text and release the mouse to translate immediately. **Ctrl+Shift+1** does the same. Turn the double tap off under Settings → Shortcuts; on macOS it needs Accessibility permission, which FastPin asks for once. Choose **Dictionary / translate** in the panel or menu bar/tray for the same flow. Like every default, it uses Ctrl+Shift and a number key you can reach with the left hand, so it never takes over Ctrl+D (end of input in terminals, forward delete in macOS text fields, bookmarks in browsers). Translation leaves your clipboard unchanged; use the card's copy button to copy the result.
+**Tap Control twice** quickly, drag around the text and release the mouse to translate immediately. **Ctrl+Shift+1** does the same. Turn the double tap off under Settings → Shortcuts; on macOS it needs Input Monitoring permission. Allow FastPin when prompted, then reopen it. Choose **Dictionary / translate** in the panel or menu bar/tray for the same flow. Like every default, it uses Ctrl+Shift and a number key you can reach with the left hand, so it never takes over Ctrl+D (end of input in terminals, forward delete in macOS text fields, bookmarks in browsers). Translation leaves your clipboard unchanged; use the card's copy button to copy the result.
 
 The card appears immediately with **Recognizing text…**, then shows the dictionary result or **Translating…** in place. You can close it while recognition is running; it stays closed when the result arrives.
 

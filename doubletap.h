@@ -21,5 +21,9 @@ private:
 
 // Watches Control system-wide and calls triggered() on the main thread for each
 // double tap. Returns a function that stops watching, or {} when unavailable
-// (macOS needs Accessibility permission to observe other apps' key events).
+// (macOS needs Input Monitoring permission to observe key events).
 std::function<void()> watchDoubleControl(std::function<void()> triggered);
+
+#ifdef Q_OS_MACOS
+bool doubleControlAccessAllowed(bool prompt);
+#endif
