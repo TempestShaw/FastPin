@@ -1,5 +1,5 @@
 // Exercise the production Sparkle delegate with a separate app identity and temporary data.
-#include "settings_mac.mm"
+#include "platform/settings_mac.mm"
 #include <QApplication>
 #include <QFile>
 #include <QTimer>

@@ -9,7 +9,7 @@ $packagePath = (Resolve-Path $PackageDirectory).Path
 $assetsPath = Join-Path $packagePath 'Assets'
 New-Item -ItemType Directory -Force -Path $assetsPath | Out-Null
 Add-Type -AssemblyName System.Drawing
-$source = [System.Drawing.Image]::FromFile((Join-Path $PSScriptRoot 'assets\app-icon.png'))
+$source = [System.Drawing.Image]::FromFile((Join-Path $PSScriptRoot '..\assets\app-icon.png'))
 try {
     foreach ($asset in @(@('StoreLogo', 50), @('Square44x44Logo', 44), @('Square150x150Logo', 150))) {
         $bitmap = New-Object System.Drawing.Bitmap($asset[1], $asset[1])

@@ -8,7 +8,7 @@
 #include "doubletap.h"
 #if defined(Q_OS_MACOS) && !defined(FASTPIN_CONTROLLER_TEST)
 #define FASTPIN_NATIVE_SETTINGS
-#include "settings_mac.h"
+#include "platform/settings_mac.h"
 #include <QMenuBar>
 #endif
 

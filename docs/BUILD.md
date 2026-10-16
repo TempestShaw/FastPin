@@ -15,10 +15,22 @@ On macOS, the application is `build/FastPin.app`. On Windows, it is `build/FastP
 
 The GitHub workflow builds and packages both platforms with Qt 6.8.3. Python is used only by installer-building and verification helpers; it is not an application dependency.
 
-For a local macOS development build, `./package-macos.sh build build/new-package` signs with the persistent FastPin development identity. Public macOS distribution uses `./release-macos.sh` with a Developer ID and a configured notary profile. The development preview is not notarized.
+For a local macOS development build, `./scripts/package-macos.sh build build/new-package` signs with the persistent FastPin development identity. Public macOS distribution uses `./scripts/release-macos.sh` with a Developer ID and a configured notary profile. The development preview is not notarized.
 
-For Windows, run `./package-windows.ps1 -PackageDirectory build/package -Output build/FastPin-x64.msix`. A public MSIX requires a trusted signature matching the publisher identity. The ZIP preview uses loose-file registration with Developer Mode as described in GETTING_STARTED.md.
+For Windows, run `./scripts/package-windows.ps1 -PackageDirectory build/package -Output build/FastPin-x64.msix`. A public MSIX requires a trusted signature matching the publisher identity. The ZIP preview uses loose-file registration with Developer Mode as described in GETTING_STARTED.md.
 
 Application identifiers are `io.github.tempestshaw.fastpin` on macOS and `TempestShaw.FastPin` on Windows. FastPin has its own settings, saved-image storage, and permission grants.
 
 Native macOS settings and signed in-app updates are described in [UPDATES.md](UPDATES.md).
+
+## Repository layout
+
+- `src/`: capture, pins, annotations, translation and the application controller.
+- `src/platform/`: macOS and Windows integrations, including native macOS settings.
+- `tests/`: core, controller, native settings and updater tests, plus the benchmark.
+- `scripts/`: packaging, signing, release, dictionary generation and package verification commands.
+- `packaging/`: macOS and Windows installer and bundle templates.
+- `assets/`, `public/`, `dictionary/`, `licenses/`: application artwork, install guides and bundled third-party resources.
+- `site/`: GitHub Pages website; `updates/`: the published Sparkle feed.
+- `docs/`: build instructions, updater details and release notes.
+- `build/`: ignored local build output and diagnostics.

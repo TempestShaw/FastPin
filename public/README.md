@@ -18,4 +18,4 @@ The repository README currently documents a ZIP + Developer Mode + registration 
 PNG previews accompany SVGs. To wire these assets into the build, adjust the current Qt/CMake and DMG packaging scripts separately. Assets alone do not modify installer behavior.
 
 ## Integration
-The native application icon exports are in `../assets/`. DMG geometry is configured in `../dmg-settings.py`; the Retina background retains 144 DPI metadata. Install walkthroughs appear in `../GETTING_STARTED.md` and ship with the application. The site uses the same icon and walkthrough SVGs. Future wizard art remains unused.
+The native application icon exports are in `../assets/`. DMG geometry is configured in `../packaging/macos/dmg-settings.py`; the Retina background retains 144 DPI metadata. Install walkthroughs appear in `../GETTING_STARTED.md` and ship with the application. The site uses the same icon and walkthrough SVGs. Future wizard art remains unused.

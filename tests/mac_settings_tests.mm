@@ -1,4 +1,4 @@
-#include "settings_mac.h"
+#include "platform/settings_mac.h"
 #include "hotkey.h"
 #include "history.h"
 #include "translationcard.h"

@@ -10,11 +10,11 @@ archive=$2
 tag=$3
 output=$4
 [[ "$tag" =~ ^v[0-9][A-Za-z0-9.+-]*$ ]] || { echo 'Expected a version tag beginning with v.' >&2; exit 1; }
-script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_dir=$(cd "$(dirname "$0")/.." && pwd)
 tools="$build/_deps/sparkle-src/bin"
 mkdir "$output"
 cp "$archive" "$output/"
-cp "$script_dir/updates/appcast.xml" "$output/appcast.xml"
+cp "$repo_dir/updates/appcast.xml" "$output/appcast.xml"
 # Keep the previous published archive beside the new one so Sparkle can build a delta.
 # Advertise only the new version; older archives are delta inputs, not new downloads.
 version=$(python3 - "$archive" "$output" <<'PYTHON'
