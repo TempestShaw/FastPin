@@ -1,6 +1,9 @@
 #include "onboarding.h"
 #include "platform.h"
 #include "toolbar.h"
+#include "doubletap.h"
+#include <QDesktopServices>
+#include <QUrl>
 #include <QEvent>
 #include <QLabel>
 #include <QPainter>
@@ -43,7 +46,16 @@ protected:
 Onboarding::Onboarding(QSettings &storage, const Hotkeys::Bindings &bindings, QWidget *parent)
     : QDialog(parent), settings(storage)
 {
-    setWindowTitle("Welcome to FastPin"); setFixedSize(780, 600);
+    setWindowTitle("Welcome to FastPin"); setFixedSize(820, 660);
+    readPermissions = [] {
+#ifdef Q_OS_MACOS
+        return Permissions{screenCaptureAllowed(false), elementAccessAllowed(false), doubleControlAccessAllowed(false)};
+#else
+        return Permissions{true, true, true};
+#endif
+    };
+    permissionTimer.setInterval(750);
+    connect(&permissionTimer, &QTimer::timeout, this, &Onboarding::refreshPermissions);
     setObjectName("onboarding");
     setStyleSheet("QDialog#onboarding { background: #F6F8F6; } QLabel { color: #151B1C; }"
                   "QLabel#eyebrow { color: #128252; font-size: 11px; font-weight: 600; }"
@@ -73,20 +85,26 @@ Onboarding::Onboarding(QSettings &storage, const Hotkeys::Bindings &bindings, QW
     welcome->addWidget(new QLabel("<b>Capture</b> a window, element or region<br><br>"
                                  "<b>Mark up</b> with a pen, arrow, rectangle or text<br><br>"
                                  "<b>Keep</b> a pin, pick a color or extract text", this)); welcome->addStretch();
-    auto *permissions = page("02 / YOUR SCREEN, YOUR CHOICE", "You're in control.",
-                             "Screenshots and OCR are processed on this computer. The latest image can be saved locally; you can turn that off in Preferences.");
+    auto *permissions = page("02 / PERMISSIONS", "Get FastPin ready.",
+                             "FastPin checks system access automatically. Follow the steps below to get ready.");
 #ifdef Q_OS_MACOS
-    auto permissionRow = [this, permissions](const QString &title, QLabel *&status, QPushButton *&grant, auto request) {
+    auto permissionRow = [this, permissions](const QString &title, QLabel *&status, QPushButton *&grant, const char *pane, auto request) {
         auto *row = new QHBoxLayout; auto *text = new QVBoxLayout; text->setSpacing(6);
         auto *name = new QLabel("<b>" + title + "</b>", this); name->setWordWrap(true); text->addWidget(name);
         status = new QLabel(this); status->setObjectName("detail"); status->setWordWrap(true); text->addWidget(status);
         row->addLayout(text, 1); grant = new QPushButton("Allow…", this); row->addWidget(grant); permissions->addLayout(row);
-        connect(grant, &QPushButton::clicked, this, [this, request] { request(); refreshPermissions(); });
+        connect(grant, &QPushButton::clicked, this, [this, pane, request] {
+            request();
+            QDesktopServices::openUrl(QUrl(QString("x-apple.systempreferences:com.apple.preference.security?%1").arg(pane)));
+            refreshPermissions();
+        });
     };
-    permissionRow("Screen Recording", screenStatus, screenGrant, [] { screenCaptureAllowed(true); });
+    permissionRow("Screen Recording", screenStatus, screenGrant, "Privacy_ScreenCapture", [] { screenCaptureAllowed(true); });
     screenGrant->setAccessibleName("Allow screen capture");
-    permissionRow("Accessibility · optional", elementStatus, elementGrant, [] { elementAccessAllowed(true); });
+    permissionRow("Accessibility", elementStatus, elementGrant, "Privacy_Accessibility", [] { elementAccessAllowed(true); });
     elementGrant->setAccessibleName("Allow element detection");
+    permissionRow("Input Monitoring", inputStatus, inputGrant, "Privacy_ListenEvent", [] { doubleControlAccessAllowed(true); });
+    inputGrant->setAccessibleName("Allow double-tap Control");
 #else
     permissions->addWidget(new QLabel("<b>Ready for screen capture</b><br><br>"
                                      "Window and Element detection use Windows APIs.<br>"
@@ -100,7 +118,7 @@ Onboarding::Onboarding(QSettings &storage, const Hotkeys::Bindings &bindings, QW
         key->setObjectName("binding"); row->addWidget(key); shortcuts->addLayout(row);
     }
     auto *customize = new QPushButton("Customize shortcuts…", this); shortcuts->addWidget(customize, 0, Qt::AlignLeft);
-    connect(customize, &QPushButton::clicked, this, [this] { complete(); emit preferencesRequested(); });
+    connect(customize, &QPushButton::clicked, this, &Onboarding::preferencesRequested);
     auto *tip = new QLabel("While capturing, press Tab to switch Window / Element.\nAfter closing a pin, Restore last image brings it back.", this);
     tip->setObjectName("detail"); tip->setWordWrap(true); shortcuts->addWidget(tip); shortcuts->addStretch();
     auto *navigation = new QHBoxLayout;
@@ -110,49 +128,66 @@ Onboarding::Onboarding(QSettings &storage, const Hotkeys::Bindings &bindings, QW
     next = new QPushButton(this); next->setObjectName("primary"); navigation->addWidget(next);
     connect(next, &QPushButton::clicked, this, [this] {
         if (pages->currentIndex() < 2) setStep(pages->currentIndex() + 1);
-        else { complete(); emit captureRequested(); }
+        else if (complete()) emit captureRequested();
     }); body->addLayout(navigation);
-    auto *later = new QPushButton("I'll explore on my own", this); later->setFlat(true); body->addWidget(later, 0, Qt::AlignRight);
-    connect(later, &QPushButton::clicked, this, &QDialog::reject);
     setStep(0);
 }
 
 bool Onboarding::start(bool force)
 {
-    if (!force && settings.value("onboarding/seen", false).toBool()) return false;
+    const bool ready = readPermissions().ready();
+    if (!force && settings.value("onboarding/completed", false).toBool() && ready) return false;
+    const bool returning = settings.value("onboarding/seen", false).toBool();
     settings.setValue("onboarding/seen", true); settings.sync();
+    setStep(returning && !force ? 1 : 0);
     show(); return true;
 }
 
 void Onboarding::setStep(int step)
 {
+    if (step > 1 && !readPermissions().ready()) step = 1;
     pages->setCurrentIndex(step); back->setVisible(step > 0);
     progress->setText(QString("%1 / 3").arg(step + 1));
     next->setText(step == 2 ? "Try a capture" : "Continue");
-    if (step == 1) refreshPermissions();
+    refreshPermissions();
 }
 
 void Onboarding::refreshPermissions()
 {
-    if (screenStatus) {
-        const bool allowed = screenCaptureAllowed(false);
-        screenStatus->setText(allowed ? "Your screen is ready to capture." : "For captures. Allow in System Settings; reopen the app if macOS asks.");
-        screenGrant->setEnabled(!allowed); screenGrant->setText(allowed ? "Allowed" : "Allow…");
+    const bool wasReady = permissions.ready();
+    permissions = readPermissions();
+    auto update = [](QLabel *status, QPushButton *grant, bool allowed, const QString &detail) {
+        if (!status) return;
+        status->setText(allowed ? "Allowed · Ready" : detail);
+        status->setStyleSheet(allowed ? "color: #128252;" : "color: #596660;");
+        grant->setEnabled(!allowed); grant->setText(allowed ? "Allowed" : "Open Settings…");
+    };
+    update(screenStatus, screenGrant, permissions.screen, "For screenshots and OCR. Enable FastPin under Screen Recording.");
+    update(elementStatus, elementGrant, permissions.accessibility, "For Element selection and mouse shortcuts. Enable FastPin under Accessibility.");
+    update(inputStatus, inputGrant, permissions.input, "For double-tap Control. Enable FastPin under Input Monitoring.");
+    const bool ready = permissions.ready();
+    if (isVisible() && !ready && settings.value("onboarding/completed", false).toBool()) {
+        settings.setValue("onboarding/completed", false); settings.sync();
     }
-    if (elementStatus) {
-        const bool allowed = elementAccessAllowed(false);
-        elementStatus->setText(allowed ? "Element detection, mouse shortcuts and double-tap Control are ready." : "For UI elements, mouse shortcuts and double-tap Control. Window selection works without it.");
-        elementGrant->setEnabled(!allowed); elementGrant->setText(allowed ? "Allowed" : "Allow…");
-    }
+    if (!ready && pages->currentIndex() > 1) { setStep(1); return; }
+    next->setEnabled(pages->currentIndex() == 0 || ready);
+    next->setToolTip(ready || pages->currentIndex() == 0 ? QString() : "Allow all three permissions to continue. Reopen FastPin if macOS asks; setup will resume here.");
+    if (isVisible() && pages->currentIndex() == 1 && !ready) permissionTimer.start();
+    else permissionTimer.stop();
+    if (ready && !wasReady) emit permissionsReady();
 }
 
 bool Onboarding::event(QEvent *event)
 {
-    if (event->type() == QEvent::WindowActivate && screenStatus) refreshPermissions();
+    if (next && (event->type() == QEvent::WindowActivate || event->type() == QEvent::Show)) refreshPermissions();
+    if (event->type() == QEvent::Hide) permissionTimer.stop();
     return QDialog::event(event);
 }
 
-void Onboarding::complete()
+bool Onboarding::complete()
 {
+    refreshPermissions();
+    if (!permissions.ready()) { setStep(1); return false; }
     settings.setValue("onboarding/completed", true); settings.sync(); accept();
+    return true;
 }

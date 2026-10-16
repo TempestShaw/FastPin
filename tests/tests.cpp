@@ -126,23 +126,62 @@ private slots:
         capture.findChild<QToolButton *>("translate")->click(); QCOMPARE(captureTranslation.count(), 2);
     }
 
-    void onboardingAppearsOnceAndCanBeReopened()
+    void onboardingCompletionRequiresFinishingAndCanBeReopened()
     {
         QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
         Onboarding first(settings, Hotkeys::defaults());
-        QVERIFY(first.start()); QVERIFY(first.isVisible()); first.reject();
-        QSettings reloaded(dir.filePath("settings.ini"), QSettings::IniFormat);
-        Onboarding next(reloaded, Hotkeys::defaults());
-        QVERIFY(!next.start()); QVERIFY(!next.isVisible());
-        QVERIFY(next.start(true));
+        first.readPermissions = [] { return Onboarding::Permissions{true, true, true}; };
+        QVERIFY(first.start()); first.reject();
+        QVERIFY(!settings.value("onboarding/completed").toBool());
+        Onboarding next(settings, Hotkeys::defaults());
+        next.readPermissions = first.readPermissions;
+        QVERIFY(next.start()); // Seeing or dismissing setup is not completing it.
         QSignalSpy preferences(&next, &Onboarding::preferencesRequested);
+        QSignalSpy capture(&next, &Onboarding::captureRequested);
         auto *pages = next.findChild<QStackedWidget *>(); QVERIFY(pages);
         auto *forward = next.findChild<QPushButton *>("primary"); QVERIFY(forward);
-        forward->click(); QCOMPARE(pages->currentIndex(), 1);
+        QCOMPARE(pages->currentIndex(), 1);
         forward->click(); QCOMPARE(pages->currentIndex(), 2);
         for (auto *button : next.findChildren<QPushButton *>()) if (button->text() == "Customize shortcuts…") button->click();
-        QCOMPARE(preferences.count(), 1); QVERIFY(!next.isVisible());
-        QVERIFY(reloaded.value("onboarding/completed").toBool());
+        QCOMPARE(preferences.count(), 1); QVERIFY(next.isVisible());
+        QVERIFY(!settings.value("onboarding/completed").toBool());
+        forward->click(); QCOMPARE(capture.count(), 1); QVERIFY(!next.isVisible());
+        QVERIFY(settings.value("onboarding/completed").toBool());
+        Onboarding done(settings, Hotkeys::defaults()); done.readPermissions = first.readPermissions;
+        QVERIFY(!done.start()); QVERIFY(done.start(true));
+    }
+
+    void onboardingDetectsPermissionsAndResumesUntilAllAreAllowed()
+    {
+        QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
+        Onboarding::Permissions access{false, false, false};
+        Onboarding setup(settings, Hotkeys::defaults());
+        setup.readPermissions = [&] { return access; };
+        QSignalSpy ready(&setup, &Onboarding::permissionsReady);
+        QVERIFY(setup.start());
+        auto *pages = setup.findChild<QStackedWidget *>();
+        auto *forward = setup.findChild<QPushButton *>("primary");
+        forward->click(); QCOMPARE(pages->currentIndex(), 1);
+        QVERIFY(!forward->isEnabled()); QVERIFY(setup.permissionTimer.isActive());
+        access.screen = access.accessibility = true;
+        setup.refreshPermissions(); QVERIFY(!forward->isEnabled());
+        QVERIFY(!setup.complete()); QVERIFY(!settings.value("onboarding/completed").toBool());
+        setup.reject(); QVERIFY(!setup.permissionTimer.isActive());
+        QVERIFY(setup.start()); QCOMPARE(pages->currentIndex(), 1);
+        QTest::qWait(30); // Drain activation events before simulating a grant in System Settings.
+        access.input = true;
+        QTRY_VERIFY_WITH_TIMEOUT(forward->isEnabled(), 2000); // Actual timer detects the grant without another click.
+        QCOMPARE(ready.count(), 1); QVERIFY(!setup.permissionTimer.isActive());
+        forward->click(); QCOMPARE(pages->currentIndex(), 2);
+        access.screen = false; // Revocation must also block the final completion action.
+        forward->click(); QCOMPARE(pages->currentIndex(), 1);
+        QVERIFY(!settings.value("onboarding/completed").toBool()); QVERIFY(!forward->isEnabled());
+        access.screen = true; setup.refreshPermissions(); forward->click(); forward->click();
+        QVERIFY(settings.value("onboarding/completed").toBool());
+        access.input = false;
+        Onboarding returning(settings, Hotkeys::defaults()); returning.readPermissions = [&] { return access; };
+        QVERIFY(returning.start()); QCOMPARE(returning.findChild<QStackedWidget *>()->currentIndex(), 1);
+        QVERIFY(!settings.value("onboarding/completed").toBool());
     }
 
     void mouseShortcutsPersistAlongsideKeyboardBindings()

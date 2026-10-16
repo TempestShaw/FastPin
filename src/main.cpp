@@ -191,6 +191,10 @@ public:
         welcome = new Onboarding(settings, hotkeys.bindings(), this);
         welcome->setAttribute(Qt::WA_DeleteOnClose);
         connect(welcome, &Onboarding::captureRequested, this, [this] { capture(); });
+        connect(welcome, &Onboarding::permissionsReady, this, [this] {
+            setDoubleControl(settings.value(doubleControlSetting, true).toBool());
+            refreshShortcuts();
+        });
         connect(welcome, &Onboarding::preferencesRequested, this, [this] {
             showPreferences();
         });

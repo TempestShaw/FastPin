@@ -6,7 +6,7 @@ Capture a piece of your screen, add a note, and keep it on your desktop.
 
 ![Drag FastPin into Applications](public/dmg/install-preview.png)
 
-**macOS preview:** macOS 14 or newer, Apple Silicon. Open the DMG and drag FastPin into Applications. This preview is not notarized. If macOS blocks its first launch, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445). Grant Screen Recording when prompted. Element detection and mouse shortcuts use Accessibility permission; double-tap Control uses Input Monitoring permission. Follow the first-run guide; reopen it with Getting started.
+**macOS preview:** macOS 14 or newer, Apple Silicon. Open the DMG and drag FastPin into Applications. This preview is not notarized. If macOS blocks its first launch, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445). Grant Screen Recording when prompted. Element detection and mouse shortcuts use Accessibility permission; double-tap Control uses Input Monitoring permission. The first-run guide opens each permission pane and checks access automatically. All three permissions must be allowed before setup can finish. If you close FastPin or macOS asks you to reopen it, setup resumes at the permissions step. Reopen the guide from Getting started.
 
 ![Extract the Windows ZIP](public/windows/extract-zip.png)
 
