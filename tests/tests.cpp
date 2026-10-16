@@ -1,3 +1,4 @@
+#include <future>
 #include "singleinstance.h"
 #include "capture.h"
 #include "pin.h"
@@ -134,7 +135,11 @@ private slots:
             SingleInstance first(dir.path()); QVERIFY2(first.isPrimary(), qPrintable(first.error()));
             QSignalSpy requests(&first, &SingleInstance::requested);
             SingleInstance second(dir.path()); QVERIFY(!second.isPrimary()); QVERIFY(second.error().isEmpty());
-            QVERIFY(second.forward({"--settings", "/tmp/image with spaces.png"}));
+            auto forwarded = std::async(std::launch::async, [&] {
+                return second.forward({"--settings", "/tmp/image with spaces.png"});
+            });
+            QTRY_VERIFY(forwarded.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready);
+            QVERIFY(forwarded.get());
             QTRY_COMPARE(requests.count(), 1);
             QCOMPARE(requests.first().first().toStringList(), (QStringList{"--settings", "/tmp/image with spaces.png"}));
         }
