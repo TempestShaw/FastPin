@@ -5,6 +5,11 @@ on:
   pull_request:
     paths: ['**']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for manually packaged preview artifacts (no automatic publication)'
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -23,9 +28,12 @@ jobs:
           version: '6.8.3'
           cache: true
       - name: Configure
+        env:
+          MANUAL_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
-          version=0.1.0
+          version="${MANUAL_VERSION:-0.1.0}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || { echo 'Invalid version'; exit 1; }
           if [[ "$GITHUB_REF_TYPE" == tag ]]; then version="${GITHUB_REF_NAME#v}"; fi
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFASTPIN_VERSION="$version" -DFASTPIN_BUILD_VERSION="${{ github.run_number }}"
       - name: Build
