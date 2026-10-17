@@ -154,11 +154,11 @@ public:
 #ifndef Q_OS_MACOS
         connect(&tray, &QSystemTrayIcon::activated, this, [this](auto reason) { if (reason == QSystemTrayIcon::Trigger) show(); });
 #endif
-        connect(&hotkeys, &Hotkeys::capture, this, [this] { trigger(HotkeyAction::Capture); });
+        connect(&hotkeys, &Hotkeys::capture, this, [this] { trigger(HotkeyAction::Capture, true); });
         connect(&hotkeys, &Hotkeys::paste, this, [this] { trigger(HotkeyAction::Paste); });
         connect(&hotkeys, &Hotkeys::replay, this, [this] { trigger(HotkeyAction::Replay); });
-        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { trigger(HotkeyAction::CopyText); });
-        connect(&hotkeys, &Hotkeys::quickTranslate, this, [this] { trigger(HotkeyAction::Translate); });
+        connect(&hotkeys, &Hotkeys::quickOcr, this, [this] { trigger(HotkeyAction::CopyText, true); });
+        connect(&hotkeys, &Hotkeys::quickTranslate, this, [this] { trigger(HotkeyAction::Translate, true); });
         connect(&history, &CaptureHistory::changed, this, [this](QString error) {
             if (isVisible()) refreshHistory();
             action(HotkeyAction::Replay)->setEnabled(history.available() || history.busy());
@@ -341,14 +341,15 @@ private:
 #endif
     }
 
-    void trigger(HotkeyAction requested)
+    // fromShortcut: a global shortcut or double tap, so no menu is closing on screen.
+    void trigger(HotkeyAction requested, bool fromShortcut = false)
     {
         switch (requested) {
-        case HotkeyAction::Capture: capture(); break;
+        case HotkeyAction::Capture: capture(CaptureOverlay::Mode::Screenshot, fromShortcut); break;
         case HotkeyAction::Paste: paste(); break;
         case HotkeyAction::Replay: replay(); break;
-        case HotkeyAction::CopyText: capture(CaptureOverlay::Mode::CopyText); break;
-        case HotkeyAction::Translate: capture(CaptureOverlay::Mode::Translate); break;
+        case HotkeyAction::CopyText: capture(CaptureOverlay::Mode::CopyText, fromShortcut); break;
+        case HotkeyAction::Translate: capture(CaptureOverlay::Mode::Translate, fromShortcut); break;
         }
     }
 
@@ -409,7 +410,7 @@ private:
         if (!settings.value(doubleLeftCommandSetting, true).toBool()) return;
         QPointer<Controller> self(this);
         stopDoubleLeftCommand = watchDoubleLeftCommand([self] {
-            if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Capture);
+            if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Capture, true);
         });
     }
 #endif
@@ -420,7 +421,7 @@ private:
         if (!enabled) return;
         QPointer<Controller> self(this);
         stopDoubleControl = watchDoubleControl([self] {
-            if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Translate);
+            if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Translate, true);
         });
     }
 
@@ -548,7 +549,7 @@ private:
 #endif
     }
 
-    void capture(CaptureOverlay::Mode mode = CaptureOverlay::Mode::Screenshot)
+    void capture(CaptureOverlay::Mode mode = CaptureOverlay::Mode::Screenshot, bool fromShortcut = false)
     {
         if (captureBusy) return;
         if (mode != CaptureOverlay::Mode::Screenshot && ocrBusy) { reportStatus("OCR is already running."); return; }
@@ -560,14 +561,16 @@ private:
 #ifdef Q_OS_MACOS
         restoreCaptureFocus = captureFocusRestorer();
 #endif
+        bool hidWindows = isVisible() || (welcome && welcome->isVisible());
         if (welcome) welcome->reject();
 #ifdef FASTPIN_NATIVE_SETTINGS
+        hidWindows = hidWindows || nativeSettings->isVisible();
         nativeSettings->hide();
 #endif
         hide();
-        // One activation delay lets the panel/tray menu leave the compositor.
+        // Only a closing menu or a window just hidden needs a compositor pass before the grab.
         // There is no recurring timer, mouse polling or screen recording stream.
-        QTimer::singleShot(80, this, [this, mode] {
+        QTimer::singleShot(captureSettleDelayMs(fromShortcut, hidWindows), this, [this, mode] {
             QList<ScreenFrame> frames;
             QList<DesktopCoordinates> coordinates;
             const auto windows = desktopWindows();
@@ -584,7 +587,10 @@ private:
                 coordinates.append(desktopCoordinates(screen));
             }
             // Capture every display before showing overlays, preserving each display's own DPR.
-            for (qsizetype i = 0; i < frames.size(); ++i) {
+            // The screen under the pointer is shown first: later screens may paint a frame later.
+            QList<QRect> geometries;
+            for (const auto &frame : frames) geometries.append(frame.geometry);
+            for (const qsizetype i : cursorScreenFirst(geometries, QCursor::pos())) {
                 auto *overlay = new CaptureOverlay(std::move(frames[i]), windows, coordinates[i]);
                 overlay->setMode(mode);
                 overlays.append(overlay);

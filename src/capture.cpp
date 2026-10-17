@@ -1,4 +1,5 @@
 #include "capture.h"
+#include <algorithm>
 #include "texteditor.h"
 
 #include <QApplication>
@@ -13,6 +14,20 @@
 #include <QThread>
 #include <cmath>
 #include <memory>
+
+int captureSettleDelayMs(bool fromShortcut, bool hidWindows)
+{
+    return fromShortcut && !hidWindows ? 0 : 80;
+}
+
+QList<qsizetype> cursorScreenFirst(const QList<QRect> &screens, QPoint pointer)
+{
+    QList<qsizetype> order;
+    for (qsizetype i = 0; i < screens.size(); ++i) order.append(i);
+    const auto under = std::find_if(order.begin(), order.end(), [&](qsizetype i) { return screens[i].contains(pointer); });
+    if (under != order.end()) std::rotate(order.begin(), under, under + 1);
+    return order;
+}
 
 QPoint ScreenFrame::pixelAt(QPointF local) const
 {
@@ -197,8 +212,17 @@ void CaptureOverlay::resizeEvent(QResizeEvent *event)
     if (shortcutHint) updateShortcutHint();
 }
 
+void CaptureOverlay::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    if (shortcutHintStale) updateShortcutHint();
+}
+
 void CaptureOverlay::updateShortcutHint()
 {
+    // Each layout costs ~10 ms; construction and setMode() would otherwise lay it out twice.
+    shortcutHintStale = !isVisible();
+    if (shortcutHintStale) return;
     QString title = "Capture shortcuts";
     QString detail = selection.rect.isEmpty() ? "Select a window or drag a region first." :
                      locked ? "Drag to move or resize the selection." : "Pin this window, or drag to select a region.";

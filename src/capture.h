@@ -18,6 +18,15 @@ struct ScreenFrame {
     QImage crop(QRectF local) const;
 };
 
+// Milliseconds to wait after hiding FastPin before grabbing the screen. A menu click or a
+// window FastPin just hid needs one compositor pass to disappear; a shortcut with nothing
+// to hide can grab at once.
+int captureSettleDelayMs(bool fromShortcut, bool hidWindows);
+
+// Screen indices with the one under the pointer first, so the screen being looked at
+// gets its overlay before the others.
+QList<qsizetype> cursorScreenFirst(const QList<QRect> &screens, QPoint pointer);
+
 class Selection {
 public:
     QRectF rect;
@@ -54,6 +63,7 @@ protected:
     bool event(QEvent *) override;
     bool eventFilter(QObject *, QEvent *) override;
     void resizeEvent(QResizeEvent *) override;
+    void showEvent(QShowEvent *) override;
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
     void mouseMoveEvent(QMouseEvent *) override;
@@ -85,6 +95,7 @@ private:
     InlineTextEditor *textEditor;
     qsizetype editingText = -1;
     QLabel *shortcutHint = nullptr;
+    bool shortcutHintStale = false; // Rich-text layout waits until the overlay is shown.
     Tool tool = Tool::Move;
     QColor annotationColor = QColor("#ff5a65");
     qreal strokeWidth = 3;

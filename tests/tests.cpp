@@ -978,6 +978,26 @@ private slots:
         QCOMPARE(qvariant_cast<QImage>(pinned[0][0]).size(), QSize(640, 480));
     }
 
+    void captureStartsWithoutWaitingWhenNothingHasToLeaveTheScreen()
+    {
+        // Shortcuts and double taps start at once unless a FastPin window was just hidden.
+        QCOMPARE(captureSettleDelayMs(true, false), 0);
+        QVERIFY(captureSettleDelayMs(true, true) > 0);
+        // Menus and panel buttons still wait for the menu or panel to leave the screen.
+        QVERIFY(captureSettleDelayMs(false, false) > 0);
+        QVERIFY(captureSettleDelayMs(false, true) > 0);
+    }
+
+    void captureShowsTheCursorScreenFirst()
+    {
+        const QList<QRect> screens{{0, 0, 1512, 982}, {1512, 0, 2560, 1440}, {-1920, 0, 1920, 1080}};
+        QCOMPARE(cursorScreenFirst(screens, {2000, 300}), (QList<qsizetype>{1, 0, 2}));
+        QCOMPARE(cursorScreenFirst(screens, {-100, 50}), (QList<qsizetype>{2, 0, 1}));
+        QCOMPARE(cursorScreenFirst(screens, {10, 10}), (QList<qsizetype>{0, 1, 2}));
+        // A pointer outside every screen keeps the system order.
+        QCOMPARE(cursorScreenFirst(screens, {99999, 99999}), (QList<qsizetype>{0, 1, 2}));
+    }
+
     void quickTextCaptureCompletesOnReleaseWithoutPinOrToolbar_data()
     {
         QTest::addColumn<bool>("translate");

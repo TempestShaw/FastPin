@@ -446,6 +446,12 @@ void MacSettings::show(Page page)
     [NSApp activateIgnoringOtherApps:YES];
 }
 
+bool MacSettings::isVisible() const
+{
+    auto *controller = impl->controller;
+    return controller.isWindowLoaded && controller.window.visible;
+}
+
 void MacSettings::hide()
 {
     auto *controller = impl->controller;

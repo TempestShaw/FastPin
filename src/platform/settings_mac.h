@@ -18,6 +18,7 @@ public:
     ~MacSettings();
     void show(Page page = Settings);
     void hide();
+    bool isVisible() const;
     void checkForUpdates();
     void quit();
     void setFeedback(const QString &message);
