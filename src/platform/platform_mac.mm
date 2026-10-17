@@ -150,13 +150,13 @@ DoubleTapDetector::Input doubleControlInput(CGEventType type, CGEventRef event)
     return (flags & kCGEventFlagMaskControl) ? Input::ControlDown : Input::ControlUp;
 }
 
-DoubleTapDetector::Input doubleLeftShiftInput(CGEventType type, CGEventRef event)
+DoubleTapDetector::Input doubleLeftCommandInput(CGEventType type, CGEventRef event)
 {
     using Input = DoubleTapDetector::Input;
-    if (type != kCGEventFlagsChanged || CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode) != 56) return Input::Other;
+    if (type != kCGEventFlagsChanged || CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode) != 55) return Input::Other;
     const auto flags = CGEventGetFlags(event);
-    if (flags & (kCGEventFlagMaskControl | kCGEventFlagMaskAlternate | kCGEventFlagMaskCommand | NX_DEVICERSHIFTKEYMASK)) return Input::Other;
-    return (flags & kCGEventFlagMaskShift) ? Input::ControlDown : Input::ControlUp;
+    if (flags & (kCGEventFlagMaskControl | kCGEventFlagMaskAlternate | kCGEventFlagMaskShift | NX_DEVICERCMDKEYMASK)) return Input::Other;
+    return (flags & kCGEventFlagMaskCommand) ? Input::ControlDown : Input::ControlUp;
 }
 
 static std::function<void()> watchDoubleModifier(std::function<void()> triggered,
@@ -200,9 +200,9 @@ std::function<void()> watchDoubleControl(std::function<void()> triggered)
     return watchDoubleModifier(std::move(triggered), doubleControlInput);
 }
 
-std::function<void()> watchDoubleLeftShift(std::function<void()> triggered)
+std::function<void()> watchDoubleLeftCommand(std::function<void()> triggered)
 {
-    return watchDoubleModifier(std::move(triggered), doubleLeftShiftInput);
+    return watchDoubleModifier(std::move(triggered), doubleLeftCommandInput);
 }
 
 ElementResult desktopElementAt(DesktopWindow window, QPointF point)

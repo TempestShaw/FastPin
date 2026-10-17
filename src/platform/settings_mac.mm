@@ -228,11 +228,11 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     NSButton *doubleControl = [NSButton checkboxWithTitle:@"Double-tap Control to translate" target:self action:@selector(doubleControlToggled:)];
     doubleControl.state = settings->value(doubleControlSetting, true).toBool() ? NSControlStateValueOn : NSControlStateValueOff;
     doubleControl.toolTip = @"Tap Control twice quickly to start Dictionary / translate. Needs Input Monitoring permission.";
-    NSButton *doubleShift = [NSButton checkboxWithTitle:@"Double-tap left Shift to capture" target:self action:@selector(doubleLeftShiftToggled:)];
-    doubleShift.state = settings->value(doubleLeftShiftSetting, true).toBool() ? NSControlStateValueOn : NSControlStateValueOff;
-    doubleShift.toolTip = @"Tap left Shift twice alone. Typing uppercase letters and right Shift do not trigger capture. Needs Input Monitoring.";
+    NSButton *doubleCommand = [NSButton checkboxWithTitle:@"Double-tap left Command to capture" target:self action:@selector(doubleLeftCommandToggled:)];
+    doubleCommand.state = settings->value(doubleLeftCommandSetting, true).toBool() ? NSControlStateValueOn : NSControlStateValueOff;
+    doubleCommand.toolTip = @"Tap left Command twice alone. Command used with another key and right Command do not trigger capture. Needs Input Monitoring.";
     [tabs addChildViewController:page(@"Shortcuts", @"keyboard", stack(@[
-        label(@"Global Shortcuts"), shortcutRows, doubleControl, doubleShift,
+        label(@"Global Shortcuts"), shortcutRows, doubleControl, doubleCommand,
         label(@"Click a shortcut, then press keys or Mouse4 / Mouse5. Hold both side buttons for a combo. Delete clears a shortcut; Escape ends recording. Use Fn for function keys when needed.", YES),
         stack(@[defaults, apply], NSUserInterfaceLayoutOrientationHorizontal), feedback]))];
 
@@ -332,9 +332,9 @@ static NSViewController *page(NSString *title, NSString *symbol, NSStackView *co
     historyChanged();
 }
 - (void)clearHistory:(id)sender { history->clear(); historyChanged(); }
-- (void)doubleLeftShiftToggled:(NSButton *)sender
+- (void)doubleLeftCommandToggled:(NSButton *)sender
 {
-    settings->setValue(doubleLeftShiftSetting, sender.state == NSControlStateValueOn); settings->sync();
+    settings->setValue(doubleLeftCommandSetting, sender.state == NSControlStateValueOn); settings->sync();
     if (shortcutsChanged) shortcutsChanged();
 }
 - (void)doubleControlToggled:(NSButton *)sender

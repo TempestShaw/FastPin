@@ -107,3 +107,5 @@ To change a global shortcut, open **Settings → Shortcuts**, click its field, p
 ## Credits and license
 
 FastPin grew out of the native C++ implementation developed in [ScreenPinKit](https://github.com/InterwovenCode/ScreenPinKit). Original attribution and the MIT license are preserved in [LICENSE.md](LICENSE.md) and [NOTICE.md](NOTICE.md). Qt and bundled library notices are included in [`licenses/`](licenses/).
+
+Development builds after Preview 10 use **double-tap left Command** for capture and retire the left Shift gesture. Command used with another key does not count. Double-tap Control still translates. The published Preview 10 downloads retain left Shift until the next release.

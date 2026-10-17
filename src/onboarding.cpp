@@ -164,7 +164,7 @@ void Onboarding::refreshPermissions()
     };
     update(screenStatus, screenGrant, permissions.screen, "For screenshots and OCR. Enable FastPin under Screen Recording.");
     update(elementStatus, elementGrant, permissions.accessibility, "For Element selection and mouse shortcuts. Enable FastPin under Accessibility.");
-    update(inputStatus, inputGrant, permissions.input, "For double-tap Control. Enable FastPin under Input Monitoring.");
+    update(inputStatus, inputGrant, permissions.input, "For double-tap Control and left Command. Enable FastPin under Input Monitoring.");
     const bool ready = permissions.ready();
     if (isVisible() && !ready && settings.value("onboarding/completed", false).toBool()) {
         settings.setValue("onboarding/completed", false); settings.sync();

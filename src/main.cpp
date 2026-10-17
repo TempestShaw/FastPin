@@ -39,7 +39,7 @@ class Controller : public QWidget {
 public:
     ~Controller() override { setDoubleControl(false);
 #ifdef Q_OS_MACOS
-        if (stopDoubleLeftShift) stopDoubleLeftShift();
+        if (stopDoubleLeftCommand) stopDoubleLeftCommand();
 #endif
     }
 
@@ -175,7 +175,8 @@ public:
         if (!error.isEmpty()) { setSettingsFeedback(error); status->setText("A shortcut is unavailable. Change it in Settings."); }
         applyDoubleControl(settings.value(doubleControlSetting, true).toBool());
 #ifdef Q_OS_MACOS
-        setDoubleLeftShift();
+        settings.setValue("capture/doubleLeftShift", false); // Retire the typing-prone gesture, including on downgrade.
+        setDoubleLeftCommand();
 #endif
         refreshShortcuts(); refreshHistory();
         connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] {
@@ -183,7 +184,7 @@ public:
             // Input Monitoring may have been granted while FastPin was in the background.
             if (!stopDoubleControl && settings.value(doubleControlSetting, true).toBool()) setDoubleControl(true);
 #ifdef Q_OS_MACOS
-            if (!stopDoubleLeftShift) setDoubleLeftShift();
+            if (!stopDoubleLeftCommand) setDoubleLeftCommand();
 #endif
         });
         qApp->installEventFilter(this);
@@ -205,7 +206,7 @@ public:
         connect(welcome, &Onboarding::permissionsReady, this, [this] {
             setDoubleControl(settings.value(doubleControlSetting, true).toBool());
 #ifdef Q_OS_MACOS
-            setDoubleLeftShift();
+            setDoubleLeftCommand();
 #endif
             refreshShortcuts();
         });
@@ -313,13 +314,13 @@ private:
     void setupNativeSettings()
     {
         nativeSettings = std::make_unique<MacSettings>(hotkeys, settings, history,
-            [this] { setDoubleLeftShift(); refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); },
+            [this] { setDoubleLeftCommand(); refreshShortcuts(); }, [this] { replayPending = false; refreshHistory(); },
             [this](bool enabled) { applyDoubleControl(enabled); }, [this] {
                 auto state = [this](const char *key, bool active) {
                     return !settings.value(key, true).toBool() ? "Disabled in settings" : active ? "Listening" : "Unavailable";
                 };
-                return QString("Double Control: %1\nDouble left Shift: %2\nShortcut recording: %3\n")
-                    .arg(state(doubleControlSetting, bool(stopDoubleControl)), state(doubleLeftShiftSetting, bool(stopDoubleLeftShift)),
+                return QString("Double Control: %1\nDouble left Command: %2\nShortcut recording: %3\n")
+                    .arg(state(doubleControlSetting, bool(stopDoubleControl)), state(doubleLeftCommandSetting, bool(stopDoubleLeftCommand)),
                          hotkeys.isSuspended() ? "Suspended" : "Active");
             });
         applicationMenuBar = std::make_unique<QMenuBar>();
@@ -389,9 +390,9 @@ private:
             actionKeys[i]->setText(bindings[i].toString(QKeySequence::NativeText));
         }
 #ifdef Q_OS_MACOS
-        if (stopDoubleLeftShift) {
+        if (stopDoubleLeftCommand) {
             auto *captureKeys = actionKeys[int(HotkeyAction::Capture)];
-            captureKeys->setText("Left Shift ×2" + (captureKeys->text().isEmpty() ? QString() : " · " + captureKeys->text()));
+            captureKeys->setText("Left Command ×2" + (captureKeys->text().isEmpty() ? QString() : " · " + captureKeys->text()));
         }
 #endif
         if (stopDoubleControl) {
@@ -402,12 +403,12 @@ private:
     }
 
 #ifdef Q_OS_MACOS
-    void setDoubleLeftShift()
+    void setDoubleLeftCommand()
     {
-        if (stopDoubleLeftShift) { stopDoubleLeftShift(); stopDoubleLeftShift = {}; }
-        if (!settings.value(doubleLeftShiftSetting, true).toBool()) return;
+        if (stopDoubleLeftCommand) { stopDoubleLeftCommand(); stopDoubleLeftCommand = {}; }
+        if (!settings.value(doubleLeftCommandSetting, true).toBool()) return;
         QPointer<Controller> self(this);
-        stopDoubleLeftShift = watchDoubleLeftShift([self] {
+        stopDoubleLeftCommand = watchDoubleLeftCommand([self] {
             if (self && !self->hotkeys.isSuspended()) self->trigger(HotkeyAction::Capture);
         });
     }
@@ -646,7 +647,7 @@ private:
 #endif
     std::function<void()> stopDoubleControl;
 #ifdef Q_OS_MACOS
-    std::function<void()> stopDoubleLeftShift;
+    std::function<void()> stopDoubleLeftCommand;
 #endif
     bool captureBusy = false;
     bool ocrBusy = false;

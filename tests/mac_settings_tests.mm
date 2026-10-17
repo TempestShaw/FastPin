@@ -36,7 +36,7 @@ static NSEvent *key(unsigned short code, NSEventModifierFlags flags = 0)
 }
 
 DoubleTapDetector::Input doubleControlInput(CGEventType type, CGEventRef event);
-DoubleTapDetector::Input doubleLeftShiftInput(CGEventType type, CGEventRef event);
+DoubleTapDetector::Input doubleLeftCommandInput(CGEventType type, CGEventRef event);
 
 class MacSettingsTests : public QObject {
     Q_OBJECT
@@ -67,38 +67,38 @@ private slots:
         CFRelease(event);
     }
 
-    void leftShiftDoubleTapRejectsTypingRightShiftAndChords()
+    void leftCommandDoubleTapRejectsTypingRightCommandAndChords()
     {
         using Input = DoubleTapDetector::Input;
-        auto event = CGEventCreateKeyboardEvent(nullptr, 56, true);
+        auto event = CGEventCreateKeyboardEvent(nullptr, 55, true);
         DoubleTapDetector detector;
         auto feed = [&](CGEventType type, int code, CGEventFlags flags, qint64 time) {
             CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, code);
             CGEventSetFlags(event, flags);
-            return detector.feed(doubleLeftShiftInput(type, event), time);
+            return detector.feed(doubleLeftCommandInput(type, event), time);
         };
         auto tap = [&](qint64 time) {
-            feed(kCGEventFlagsChanged, 56, kCGEventFlagMaskShift, time);
-            return feed(kCGEventFlagsChanged, 56, 0, time + 40);
+            feed(kCGEventFlagsChanged, 55, kCGEventFlagMaskCommand, time);
+            return feed(kCGEventFlagsChanged, 55, 0, time + 40);
         };
         QVERIFY(!tap(0)); QVERIFY(tap(150));
-        // Shift+A invalidates the pending tap, even when typed between taps.
+        // Command+A invalidates the pending tap, even when typed between taps.
         QVERIFY(!tap(500));
-        QVERIFY(!feed(kCGEventFlagsChanged, 56, kCGEventFlagMaskShift, 650));
-        QVERIFY(!feed(kCGEventKeyDown, 0, kCGEventFlagMaskShift, 670));
-        QVERIFY(!feed(kCGEventFlagsChanged, 56, 0, 700));
+        QVERIFY(!feed(kCGEventFlagsChanged, 55, kCGEventFlagMaskCommand, 650));
+        QVERIFY(!feed(kCGEventKeyDown, 0, kCGEventFlagMaskCommand, 670));
+        QVERIFY(!feed(kCGEventFlagsChanged, 55, 0, 700));
         QVERIFY(!tap(800));
-        // Right Shift and holding both Shift keys must never count as left taps.
+        // Right Command and holding both Command keys must never count as left taps.
         detector = {};
-        for (auto time : {1000, 1150}) {
-            QVERIFY(!feed(kCGEventFlagsChanged, 60, kCGEventFlagMaskShift, time));
-            QVERIFY(!feed(kCGEventFlagsChanged, 60, 0, time + 40));
+        for (auto code : {54, 56}) for (auto time : {1000, 1150}) {
+            QVERIFY(!feed(kCGEventFlagsChanged, code, kCGEventFlagMaskCommand, time));
+            QVERIFY(!feed(kCGEventFlagsChanged, code, 0, time + 40));
         }
-        for (auto flags : {CGEventFlags(kCGEventFlagMaskControl), CGEventFlags(kCGEventFlagMaskAlternate), CGEventFlags(kCGEventFlagMaskCommand), CGEventFlags(4)}) {
+        for (auto flags : {CGEventFlags(kCGEventFlagMaskControl), CGEventFlags(kCGEventFlagMaskAlternate), CGEventFlags(kCGEventFlagMaskShift), CGEventFlags(16)}) {
             detector = {};
             QVERIFY(!tap(1500));
-            QVERIFY(!feed(kCGEventFlagsChanged, 56, kCGEventFlagMaskShift | flags, 1650));
-            QVERIFY(!feed(kCGEventFlagsChanged, 56, 0, 1690));
+            QVERIFY(!feed(kCGEventFlagsChanged, 55, kCGEventFlagMaskCommand | flags, 1650));
+            QVERIFY(!feed(kCGEventFlagsChanged, 55, 0, 1690));
         }
         CFRelease(event);
     }
@@ -236,7 +236,7 @@ private slots:
         Hotkeys hotkeys; QVERIFY(hotkeys.apply(bindings).isEmpty());
         QSettings settings;
         CaptureHistory history(directory.filePath("diagnostics-image.png"));
-        QString monitor = "Double left Shift: Listening";
+        QString monitor = "Double left Command: Listening";
         MacSettings preferences(hotkeys, settings, history, [] {}, [] {}, {}, [&] { return monitor; });
         preferences.show(MacSettings::Diagnostics);
         NSWindow *window = nil;
@@ -247,16 +247,16 @@ private slots:
         QVERIFY(content.contains("Executable:")); QVERIFY(content.contains("Signature check:"));
         QVERIFY(content.contains("Accessibility:")); QVERIFY(content.contains("Input Monitoring:"));
         QVERIFY(content.contains(monitor));
-        monitor = "Double left Shift: Disabled in settings";
+        monitor = "Double left Command: Disabled in settings";
         auto *refresh = buttonWithLabel(window.contentView, @"Recheck"); QVERIFY(refresh);
         [refresh performClick:nil];
         QVERIFY(QString::fromNSString(report.string).contains(monitor));
     }
 
-    void leftShiftToggleIsSavedAndRefreshesMonitor()
+    void leftCommandToggleIsSavedAndRefreshesMonitor()
     {
         Hotkeys hotkeys; QVERIFY(hotkeys.apply(bindings).isEmpty());
-        QSettings settings; settings.remove(doubleLeftShiftSetting);
+        QSettings settings; settings.remove(doubleLeftCommandSetting);
         CaptureHistory history(directory.filePath("left-shift-image.png"));
         int changed = 0;
         MacSettings preferences(hotkeys, settings, history, [&] { ++changed; }, [] {});
@@ -264,12 +264,13 @@ private slots:
         NSWindow *window = nil;
         for (NSWindow *candidate in NSApp.windows) if ([candidate.title isEqualToString:@"FastPin Settings"] && candidate.visible) window = candidate;
         QVERIFY(window);
-        auto *toggle = buttonWithLabel(window.contentView, @"Double-tap left Shift to capture");
+        QVERIFY(!buttonWithLabel(window.contentView, @"Double-tap left Shift to capture"));
+        auto *toggle = buttonWithLabel(window.contentView, @"Double-tap left Command to capture");
         QVERIFY(toggle); QCOMPARE(toggle.state, NSControlStateValueOn);
         [toggle performClick:nil];
-        QCOMPARE(settings.value(doubleLeftShiftSetting).toBool(), false);
+        QCOMPARE(settings.value(doubleLeftCommandSetting).toBool(), false);
         [toggle performClick:nil];
-        QCOMPARE(settings.value(doubleLeftShiftSetting).toBool(), true);
+        QCOMPARE(settings.value(doubleLeftCommandSetting).toBool(), true);
         QCOMPARE(changed, 2);
     }
 
