@@ -10,11 +10,18 @@ inline constexpr char doubleControlSetting[] = "translate/doubleControl"; // Def
 class DoubleTapDetector {
 public:
     enum class Input { ControlDown, ControlUp, Other };
+    // OnSecondPress reacts one key press sooner; OnSecondRelease also rejects a second
+    // press that turns into a chord, for keys that are often held with others.
+    enum class Fire { OnSecondRelease, OnSecondPress };
+    explicit DoubleTapDetector(Fire fire = Fire::OnSecondRelease) : fire(fire) {}
     static constexpr qint64 maxTapMs = 300;  // Press-to-release time for one tap.
     static constexpr qint64 maxGapMs = 400;  // First release to second press.
     bool feed(Input input, qint64 msec);
+    void reset() { *this = DoubleTapDetector(fire); } // Forget pending taps, keep the fire timing.
 private:
+    Fire fire;
     bool pressed = false;
+    bool firedOnPress = false; // The release that follows a press trigger is not a tap.
     qint64 downAt = 0;
     qint64 lastTapAt = -1;
 };

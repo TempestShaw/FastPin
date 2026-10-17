@@ -59,7 +59,7 @@ LRESULT CALLBACK doubleControlMouse(int code, WPARAM message, LPARAM data)
 std::function<void()> watchDoubleControl(std::function<void()> triggered)
 {
     if (DoubleControlWatch::active) return {};
-    auto *watch = new DoubleControlWatch{{}, std::move(triggered)};
+    auto *watch = new DoubleControlWatch{DoubleTapDetector(DoubleTapDetector::Fire::OnSecondPress), std::move(triggered)};
     watch->keyboard = SetWindowsHookExW(WH_KEYBOARD_LL, doubleControlKeyboard, GetModuleHandleW(nullptr), 0);
     watch->mouse = SetWindowsHookExW(WH_MOUSE_LL, doubleControlMouse, GetModuleHandleW(nullptr), 0);
     auto stop = [watch] {

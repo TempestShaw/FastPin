@@ -160,7 +160,7 @@ DoubleTapDetector::Input doubleLeftCommandInput(CGEventType type, CGEventRef eve
 }
 
 static std::function<void()> watchDoubleModifier(std::function<void()> triggered,
-    DoubleTapDetector::Input (*input)(CGEventType, CGEventRef))
+    DoubleTapDetector::Input (*input)(CGEventType, CGEventRef), DoubleTapDetector::Fire fire)
 {
     if (QGuiApplication::platformName() != "cocoa" || !doubleControlAccessAllowed(false)) return {};
     struct Watch {
@@ -169,14 +169,14 @@ static std::function<void()> watchDoubleModifier(std::function<void()> triggered
         DoubleTapDetector::Input (*input)(CGEventType, CGEventRef);
         CFMachPortRef tap = nullptr;
     };
-    auto *watch = new Watch{{}, std::move(triggered), input};
+    auto *watch = new Watch{DoubleTapDetector(fire), std::move(triggered), input};
     const auto mask = CGEventMaskBit(kCGEventFlagsChanged) | CGEventMaskBit(kCGEventKeyDown) |
         CGEventMaskBit(kCGEventLeftMouseDown) | CGEventMaskBit(kCGEventRightMouseDown) | CGEventMaskBit(kCGEventOtherMouseDown);
     watch->tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly, mask,
         [](CGEventTapProxy, CGEventType type, CGEventRef event, void *context) -> CGEventRef {
             auto *watch = static_cast<Watch *>(context);
             if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
-                watch->detector = {};
+                watch->detector.reset();
                 CGEventTapEnable(watch->tap, true);
                 return event;
             }
@@ -197,12 +197,14 @@ static std::function<void()> watchDoubleModifier(std::function<void()> triggered
 
 std::function<void()> watchDoubleControl(std::function<void()> triggered)
 {
-    return watchDoubleModifier(std::move(triggered), doubleControlInput);
+    // Control is rarely held between taps, so react on the second press.
+    return watchDoubleModifier(std::move(triggered), doubleControlInput, DoubleTapDetector::Fire::OnSecondPress);
 }
 
 std::function<void()> watchDoubleLeftCommand(std::function<void()> triggered)
 {
-    return watchDoubleModifier(std::move(triggered), doubleLeftCommandInput);
+    // Command starts most chords (Command+Tab, Command+C), so wait for a clean second release.
+    return watchDoubleModifier(std::move(triggered), doubleLeftCommandInput, DoubleTapDetector::Fire::OnSecondRelease);
 }
 
 ElementResult desktopElementAt(DesktopWindow window, QPointF point)

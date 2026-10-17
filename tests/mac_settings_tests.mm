@@ -89,13 +89,13 @@ private slots:
         QVERIFY(!feed(kCGEventFlagsChanged, 55, 0, 700));
         QVERIFY(!tap(800));
         // Right Command and holding both Command keys must never count as left taps.
-        detector = {};
+        detector.reset();
         for (auto code : {54, 56}) for (auto time : {1000, 1150}) {
             QVERIFY(!feed(kCGEventFlagsChanged, code, kCGEventFlagMaskCommand, time));
             QVERIFY(!feed(kCGEventFlagsChanged, code, 0, time + 40));
         }
         for (auto flags : {CGEventFlags(kCGEventFlagMaskControl), CGEventFlags(kCGEventFlagMaskAlternate), CGEventFlags(kCGEventFlagMaskShift), CGEventFlags(16)}) {
-            detector = {};
+            detector.reset();
             QVERIFY(!tap(1500));
             QVERIFY(!feed(kCGEventFlagsChanged, 55, kCGEventFlagMaskCommand | flags, 1650));
             QVERIFY(!feed(kCGEventFlagsChanged, 55, 0, 1690));

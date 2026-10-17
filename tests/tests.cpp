@@ -389,6 +389,37 @@ private slots:
         QCOMPARE(taps(strayUp, {{In::ControlUp, 0}, {In::ControlDown, 100}, {In::ControlUp, 150}}), 0);
     }
 
+    void doubleControlCanFireOnTheSecondPress()
+    {
+        using In = DoubleTapDetector::Input;
+        using Fire = DoubleTapDetector::Fire;
+        // Returns the event index that fired, or -1.
+        auto firedAt = [](DoubleTapDetector &d, std::initializer_list<std::pair<In, qint64>> events) {
+            int index = 0, fired = -1;
+            for (const auto &[input, at] : events) { if (d.feed(input, at) && fired < 0) fired = index; ++index; }
+            return fired;
+        };
+        DoubleTapDetector press(Fire::OnSecondPress);
+        QCOMPARE(firedAt(press, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::ControlDown, 200}, {In::ControlUp, 260}}), 2);
+        // The release after firing is not a new tap, so a third quick tap does not fire again.
+        QCOMPARE(firedAt(press, {{In::ControlDown, 330}, {In::ControlUp, 380}}), -1);
+        // Taps three and four are a new double tap: the fourth press fires.
+        QCOMPARE(firedAt(press, {{In::ControlDown, 450}, {In::ControlUp, 500}}), 0);
+        DoubleTapDetector slowGap(Fire::OnSecondPress);
+        QCOMPARE(firedAt(slowGap, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::ControlDown, 700}}), -1);
+        DoubleTapDetector heldFirst(Fire::OnSecondPress);
+        QCOMPARE(firedAt(heldFirst, {{In::ControlDown, 0}, {In::ControlUp, 600}, {In::ControlDown, 700}}), -1);
+        DoubleTapDetector chordFirst(Fire::OnSecondPress);
+        QCOMPARE(firedAt(chordFirst, {{In::ControlDown, 0}, {In::Other, 40}, {In::ControlUp, 80}, {In::ControlDown, 200}}), -1);
+        DoubleTapDetector interrupted(Fire::OnSecondPress);
+        QCOMPARE(firedAt(interrupted, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::Other, 120}, {In::ControlDown, 200}}), -1);
+        DoubleTapDetector repeats(Fire::OnSecondPress);
+        QCOMPARE(firedAt(repeats, {{In::ControlDown, 0}, {In::ControlDown, 30}, {In::ControlUp, 80}, {In::ControlDown, 200}, {In::ControlDown, 230}}), 3);
+        // Release stays the default, for keys that are often held for chords.
+        DoubleTapDetector release;
+        QCOMPARE(firedAt(release, {{In::ControlDown, 0}, {In::ControlUp, 80}, {In::ControlDown, 200}, {In::ControlUp, 260}}), 3);
+    }
+
     void quickOcrBindingPreservesExistingPreferences()
     {
         QTemporaryDir dir; QSettings settings(dir.filePath("settings.ini"), QSettings::IniFormat);
