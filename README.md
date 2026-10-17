@@ -36,7 +36,7 @@ Capture something new, pin an image from your clipboard, or pick up where you le
 
 ## Your first capture
 
-1. On macOS, **double-tap left Shift** (alone, without typing); otherwise press **Ctrl+Shift+2**, or choose **Capture screenshot** from the menu bar or tray. Drag to select a region. Press **Tab** to switch between **Window** and **Element** detection.
+1. On macOS, **double-tap left Command** (alone, without typing); otherwise press **Ctrl+Shift+2**, or choose **Capture screenshot** from the menu bar or tray. Drag to select a region. Press **Tab** to switch between **Window** and **Element** detection.
 2. Mark what matters: **P** for pen, **A** for arrow, **R** for rectangle, or **T** for text. With Text selected, click the image and type directly on it. Click existing text to edit it again. **Enter** finishes text; **Shift+Enter** adds a line.
 3. Press **Space** or **Enter** to pin the image. Drag to move it and scroll to zoom. Its toolbar starts hidden: hover over the pin and press **Space** to show or hide the tools.
 
@@ -57,12 +57,12 @@ To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The r
 
 ## Install
 
-Latest release: [**0.1.0 Preview 10**](https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.10). On macOS, use **About → Check for Updates…**; Preview 9 can use the approximately 144 KB incremental package. The full archive is used when a matching delta cannot be applied.
+Latest release: [**0.1.0 Preview 11**](https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.11). On macOS, use **About → Check for Updates…**; Matching previous versions can use a signed incremental package. The full archive is used when a matching delta cannot be applied.
 
 | Platform | Download | Requirements |
 | --- | --- | --- |
-| macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.10/FastPin-macOS.dmg) | macOS 14 or newer |
-| Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.10/FastPin-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
+| macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.11/FastPin-macOS.dmg) | macOS 14 or newer |
+| Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.11/FastPin-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
 
 **macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection and mouse shortcuts use Accessibility permission; both double-tap gestures use Input Monitoring permission. Onboarding checks all three permissions automatically and resumes if setup is interrupted. This preview uses a persistent development signing identity and is not Apple-notarized. The first upgrade from an older signing identity may require removing and re-adding FastPin in macOS privacy settings. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
 
@@ -80,7 +80,7 @@ The [illustrated Quick Start](GETTING_STARTED.md) walks through installation, pe
 
 | Task | Control |
 | --- | --- |
-| Capture a screenshot | Double-tap left Shift on macOS, or Ctrl+Shift+2 |
+| Capture a screenshot | Double-tap left Command on macOS, or Ctrl+Shift+2 |
 | Copy text from screen | Ctrl+Shift+5 |
 | Select text to translate | Double-tap Control on macOS, or Ctrl+Shift+1 |
 | Pin an image from the clipboard | Ctrl+Shift+3 |
@@ -107,5 +107,3 @@ To change a global shortcut, open **Settings → Shortcuts**, click its field, p
 ## Credits and license
 
 FastPin grew out of the native C++ implementation developed in [ScreenPinKit](https://github.com/InterwovenCode/ScreenPinKit). Original attribution and the MIT license are preserved in [LICENSE.md](LICENSE.md) and [NOTICE.md](NOTICE.md). Qt and bundled library notices are included in [`licenses/`](licenses/).
-
-Development builds after Preview 10 use **double-tap left Command** for capture and retire the left Shift gesture. Command used with another key does not count. Double-tap Control still translates. The published Preview 10 downloads retain left Shift until the next release.

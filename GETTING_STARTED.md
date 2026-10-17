@@ -68,6 +68,4 @@ Close or hide the control panel to leave FastPin in the menu bar/tray. Quit from
 
 [Download FastPin](https://github.com/TempestShaw/FastPin/releases) · [Report an issue](https://github.com/TempestShaw/FastPin/issues)
 
-On macOS, double-tap **left Shift** alone to start capture, then select a region and press **Space** to pin. Double-tap **Control** starts translation separately. Right Shift and Shift used while typing do not trigger capture. Disable either double-tap under Settings → Shortcuts. Input Monitoring permission is required. Ctrl+S is not a default global shortcut.
-
-Development builds after Preview 10 use **double-tap left Command** for capture and retire the left Shift gesture. Command used with another key does not count. Double-tap Control still translates. The published Preview 10 downloads retain left Shift until the next release.
+On macOS, double-tap **left Command** alone to start capture, then select a region and press **Space** to pin. Double-tap **Control** starts translation separately. Right Command and Command used with another key do not trigger capture. Disable either double-tap under Settings → Shortcuts. Input Monitoring permission is required. Ctrl+S is not a default global shortcut.
