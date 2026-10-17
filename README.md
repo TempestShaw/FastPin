@@ -7,7 +7,7 @@
 <p align="center">Capture what matters. Keep it in view.</p>
 
 <p align="center">
-  <a href="https://fastpin.happysage32.chatgpt.site/">Website</a> ·
+  <a href="https://tempestshaw.github.io/FastPin/">Website</a> ·
   <a href="https://github.com/TempestShaw/FastPin/releases">Download</a> ·
   <a href="GETTING_STARTED.md">Quick Start</a> ·
   <a href="#your-first-capture">Your First Capture</a> ·
@@ -22,17 +22,17 @@
 
 FastPin turns a screenshot into a reference you can keep above your work. Select a window, a UI element, or any region; add an arrow or a note; then pin it to your desktop. Move and zoom your pins, copy text with OCR, translate a word or sentence, or pick an exact pixel's color.
 
-On macOS, FastPin lives in the menu bar without a Dock icon. Settings, Shortcuts and About use native macOS controls. Signed in-app updates let you download and restart from **About → Check for Updates…**; older previews need one manual installation of an updater-enabled version.
+On macOS, FastPin lives in the menu bar without a Dock icon. Settings, Shortcuts, About and Diagnostics use native macOS controls. Reopening FastPin brings up the existing instance rather than starting competing shortcut monitors. Signed in-app updates let you download and restart from **About → Check for Updates…**; older previews need one manual installation of an updater-enabled version.
 
 ## A look at FastPin
 
 <p align="center">
-  <a href="https://fastpin.happysage32.chatgpt.site/">
+  <a href="https://tempestshaw.github.io/FastPin/">
     <img src="docs/assets/workspace.png" alt="FastPin's Workspace panel on macOS, with Capture screenshot, Paste as pin, and Restore pin controls" width="620">
   </a>
 </p>
 
-Capture something new, pin an image from your clipboard, or pick up where you left off. The [website](https://fastpin.happysage32.chatgpt.site/) includes an interactive annotation preview and a first-launch guide.
+Capture something new, pin an image from your clipboard, or pick up where you left off. The [website](https://tempestshaw.github.io/FastPin/) includes an interactive annotation preview and a first-launch guide.
 
 ## Your first capture
 
@@ -42,14 +42,14 @@ Capture something new, pin an image from your clipboard, or pick up where you le
 
 Already have an image copied? Press **Ctrl+Shift+3** to pin it. Closed a pin you still need? **Ctrl+Shift+4** restores your last image with its annotations and zoom.
 
-These are the defaults. Change them in **Preferences** to use your own keys or mouse side buttons.
+These are the defaults. Change them in **Settings → Shortcuts** to use your own keys or mouse side buttons.
 
 ## Why use FastPin?
 
 - **Keep a reference beside your work.** Leave multiple images above other windows, move them where you need them, and zoom in on a detail.
 - **Explain the important part.** Use four focused annotation tools: pen, arrow, rectangle, and inline text, with undo and redo.
 - **Skip retyping.** Select a region and press **O** to copy recognized text, or use OCR from a pin's toolbar.
-- **Translate beside your work.** **Tap Control twice** (or press **Ctrl+Shift+1**), select text and release. A milk-white translucent card appears while recognition runs, then shows the result in place. Words and known short phrases use an offline dictionary; sentences use free online translation. The card includes pronunciation, copy and close controls.
+- **Translate beside your work.** On macOS, **tap Control twice** (or press **Ctrl+Shift+1** on either platform), select text and release. A milk-white translucent card appears while recognition runs, then shows the result in place. Words and known short phrases use an offline dictionary; sentences use free online translation. The card includes pronunciation, copy and close controls.
 - **Sample a precise color.** Use the capture magnifier and arrow keys to position the cursor one pixel at a time. Press **C** to copy the color; **Shift** switches HEX and RGB.
 - **Make the controls yours.** Bind capture, paste, restore, quick OCR and translation to a key combination, a function key, or a mouse side-button gesture. A capture hint panel shows the actions available in the current mode.
 
@@ -57,12 +57,14 @@ To grab text quickly, press **Ctrl+Shift+5**, drag around it, and release. The r
 
 ## Install
 
+Latest release: [**0.1.0 Preview 10**](https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.10). On macOS, use **About → Check for Updates…**; Preview 9 can use the approximately 144 KB incremental package. The full archive is used when a matching delta cannot be applied.
+
 | Platform | Download | Requirements |
 | --- | --- | --- |
 | macOS | [Apple Silicon DMG](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.10/FastPin-macOS.dmg) | macOS 14 or newer |
 | Windows | [x64 ZIP](https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.10/FastPin-Windows-x64.zip) | Windows 10 version 2004 or newer / Windows 11 |
 
-**macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection and mouse shortcuts use Accessibility permission; double-tap Control uses Input Monitoring permission. This preview is not notarized. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
+**macOS:** open the DMG and drag FastPin into Applications. Allow Screen Recording when prompted; Element detection and mouse shortcuts use Accessibility permission; both double-tap gestures use Input Monitoring permission. Onboarding checks all three permissions automatically and resumes if setup is interrupted. This preview uses a persistent development signing identity and is not Apple-notarized. The first upgrade from an older signing identity may require removing and re-adding FastPin in macOS privacy settings. If the first launch is blocked, follow [Apple's app-opening instructions](https://support.apple.com/en-us/102445).
 
 **Windows:** extract the ZIP into a permanent folder and enable Developer Mode. Open PowerShell in the extracted folder and register the app:
 
@@ -78,9 +80,9 @@ The [illustrated Quick Start](GETTING_STARTED.md) walks through installation, pe
 
 | Task | Control |
 | --- | --- |
-| Capture a screenshot | Ctrl+Shift+2 |
+| Capture a screenshot | Double-tap left Shift on macOS, or Ctrl+Shift+2 |
 | Copy text from screen | Ctrl+Shift+5 |
-| Select text to translate | Control, Control (double tap) or Ctrl+Shift+1 |
+| Select text to translate | Double-tap Control on macOS, or Ctrl+Shift+1 |
 | Pin an image from the clipboard | Ctrl+Shift+3 |
 | Restore the last image | Ctrl+Shift+4 |
 | Switch Window / Element detection | Tab while capturing |
@@ -92,14 +94,14 @@ The [illustrated Quick Start](GETTING_STARTED.md) walks through installation, pe
 | Switch HEX / RGB | Shift while capturing |
 | Save an image | Cmd+S on macOS / Ctrl+S on Windows |
 
-To change a global shortcut, open **Preferences**, click its field, press your keys or side buttons, then choose **Apply shortcuts**. Hold both side buttons for a combination and release them to finish. Clear a field to disable that shortcut. On Mac, **Ctrl** means the Control key (**⌃**); Command is **⌘**.
+To change a global shortcut, open **Settings → Shortcuts**, click its field, press your keys or side buttons, then choose **Apply shortcuts**. Hold both side buttons for a combination and release them to finish. Clear a field to disable that shortcut. On Mac, **Ctrl** means the Control key (**⌃**); Command is **⌘**.
 
 ## Explore and contribute
 
 - [Quick Start](GETTING_STARTED.md): installation, capture, pinning, OCR, and color picking.
 - [macOS updates](docs/UPDATES.md): native settings and in-app update behavior.
 - [Releases](https://github.com/TempestShaw/FastPin/releases): downloads and what's new.
-- [Report a problem or suggest a feature](https://github.com/TempestShaw/FastPin/issues): include your OS, FastPin version, and steps to reproduce.
+- [Report a problem or suggest a feature](https://github.com/TempestShaw/FastPin/issues): include your OS, FastPin version, and steps to reproduce. On macOS, **Settings → Diagnostics → Copy Diagnostics** provides permission, signature and monitor status without images, OCR text or clipboard contents.
 - [Build from source](docs/BUILD.md): FastPin is a standalone C++17 application using Qt Widgets.
 
 ## Credits and license
