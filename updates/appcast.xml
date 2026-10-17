@@ -1,20 +1,20 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>FastPin for macOS</title>
         <description>Signed FastPin updates</description>
         <language>en</language>
         <item>
-            <title>0.1.0-preview.10</title>
-            <pubDate>Fri, 16 Oct 2026 10:13:18 -0400</pubDate>
-            <link>https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.10</link>
-            <sparkle:version>52</sparkle:version>
-            <sparkle:shortVersionString>0.1.0-preview.10</sparkle:shortVersionString>
+            <title>0.1.0-preview.11</title>
+            <pubDate>Sat, 17 Oct 2026 13:06:55 -0400</pubDate>
+            <link>https://github.com/TempestShaw/FastPin/releases/tag/v0.1.0-preview.11</link>
+            <sparkle:version>60</sparkle:version>
+            <sparkle:shortVersionString>0.1.0-preview.11</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.10/FastPin-macOS-arm64.zip" length="33231746" type="application/octet-stream" sparkle:edSignature="S/m8pPeHZPG5giMHT9803cyhhG3rbt/W3O0cCewXfYTimkKVsA98uHCgqdxvPJNGF+KJE/yMY5re0sD2O0SAAA==" />
+            <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.11/FastPin-macOS-arm64.zip" length="33231774" type="application/octet-stream" sparkle:edSignature="woIM1ncYarydSIC9fErlf5E/jBtOHqgCsg+fNutWOSurmWzN6ven2RiNW9UN2p135KjquIOAVuGWZhnh3fRoDQ=="/>
             <sparkle:deltas>
-                <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.10/FastPin52-42.delta" sparkle:deltaFrom="42" length="147318" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="978864" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Ax7Riy6XMGyIO5ux4X3xTh+pvxk6qSX9ToqIeBU9qoTfIcffLW2j6dAgTSzAQcR3mSwDpiFv+R0dPXaDzd3EDA==" />
+                <enclosure url="https://github.com/TempestShaw/FastPin/releases/download/v0.1.0-preview.11/FastPin60-52.delta" sparkle:deltaFrom="52" length="94838" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="978960" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Z5z4mnTgctFXXZnKYpLc7Z7f+ly8wtSLLXsJZ/LbvnfJqzlsTeDKQ/4a4CaqJ+kX18ysOeWbC98hwQJnMPk4Dg=="/>
             </sparkle:deltas>
         </item>
     </channel>
