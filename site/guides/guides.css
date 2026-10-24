@@ -1,0 +1,23 @@
+/* Guide content uses the existing flat FastPin palette. */
+.guide { max-width: 800px; padding-block: 56px 72px; }
+.guide h1 { font-size: clamp(32px, 6vw, 52px); margin: 16px 0 24px; max-width: 20ch; }
+.guide .lede { max-width: none; }
+.guide p { margin-block: 16px; }
+.guide section { margin-top: 48px; scroll-margin-top: 88px; }
+.guide h2 { font-size: clamp(24px, 4vw, 32px); }
+.guide li { margin-block: 14px; padding-left: 4px; }
+.guide ol, .guide ul { padding-left: 24px; }
+.guide a:not(.button) { color: var(--mint-ink); text-underline-offset: 3px; }
+.guide details p { color: var(--text); }
+.sample { margin: 24px 0; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.sample figcaption { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.sample pre { margin: 0; overflow-x: auto; font: 14px/1.7 var(--mono); }
+.sample code { padding: 0; background: transparent; word-break: normal; }
+.example-card { max-width: 380px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.example-card h3 { font-size: 24px; margin-top: 12px; }
+.example-label { color: var(--mint-ink); font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+.example-action { display: inline-block; background: var(--mint); color: var(--ink); padding: 10px 16px; border-radius: 8px; font-weight: 600; }
+.example-card-after { padding: 32px; }
+.next-step { border-top: 2px solid var(--mint); padding-top: 28px; }
+.related { padding-top: 24px; border-top: 1px solid var(--line); }
+@media (max-width: 600px) { .guide { padding-top: 32px; } .sample { padding: 16px; } .nav-row { gap: 12px; } .nav .button { margin-left: auto; font-size: 12px; padding-inline: 10px; } }

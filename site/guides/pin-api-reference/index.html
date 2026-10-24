@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keep an API response beside your editor — FastPin</title>
+<meta name="description" content="Pin a screenshot of an API response above your editor with FastPin. Try a sample JSON reference, follow the capture steps, and check preview install requirements.">
+<link rel="canonical" href="https://tempestshaw.github.io/FastPin/guides/pin-api-reference/">
+<meta property="og:type" content="article"><meta property="og:title" content="Keep an API response beside your editor — FastPin">
+<meta property="og:description" content="Pin a screenshot of an API response above your editor with FastPin. Try a sample JSON reference, follow the capture steps, and check preview install requirements."><meta property="og:url" content="https://tempestshaw.github.io/FastPin/guides/pin-api-reference/">
+<meta property="og:image" content="https://raw.githubusercontent.com/TempestShaw/FastPin/main/docs/assets/workspace.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../../assets/app-icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../style.css"><link rel="stylesheet" href="../guides.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav"><div class="wrap nav-row"><a class="brand" href="../../"><img src="../../assets/app-icon.svg" alt="" width="32" height="32">FastPin</a><nav class="nav-links" aria-label="Guide navigation"><a href="../../#guides">Guides</a><a href="https://github.com/TempestShaw/FastPin">GitHub</a></nav><a class="button button-small" href="../../#download">Install notes &amp; download</a></div></header>
+<main id="main" class="wrap guide">
+<p class="eyebrow">FastPin guide · macOS &amp; Windows</p>
+<h1>Keep an API response beside your editor</h1>
+<p class="lede">Keep the fields you need in view while you write the code that consumes them. A small pinned image can be useful when switching between a browser, a terminal response and your editor.</p>
+<p>Use it for a short reference that fits in one crop. Keep the original response open when you need searchable text, more rows or fresh data: a pin is a snapshot, not a live API view.</p>
+<section aria-labelledby="sample"><h2 id="sample">A reference you can capture</h2>
+<p>This fictional response contains no credentials or personal data. Crop the code block with FastPin, then use the task below to check whether the pin remains useful while you move around.</p>
+<figure class="sample"><figcaption>Sample response · fictional export job</figcaption><pre><code>{
+  "job_id": "export-demo-42",
+  "state": "ready",
+  "result": {
+    "file_name": "sample-report.csv",
+    "rows": 128,
+    "download_path": "/exports/sample-report.csv"
+  }
+}</code></pre></figure></section><section aria-labelledby="steps"><h2 id="steps">Capture, pin, then keep working</h2>
+<ol>
+<li>Open FastPin and finish its permission setup. On macOS, check Screen Recording, Accessibility and Input Monitoring in Diagnostics if capture does not start.</li>
+<li>Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> and drag around the reference below. On macOS, double-tapping <em>left Command</em> is another capture trigger. Use your configured shortcut if you changed the defaults.</li>
+<li>Press <kbd>Space</kbd> to pin the selection. Drag the pin beside the area you are working on; scroll over the pin to adjust its size.</li>
+<li>Switch to your editor or scroll to the comparison task. The pinned image should remain visible. Hover over the pin and press <kbd>Space</kbd> for its tools.</li>
+<li>Press <kbd>Escape</kbd> while the pin is active to close it. <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>4</kbd> restores the last image if you closed it too soon.</li>
+</ol></section>
+<section aria-labelledby="task"><h2 id="task">Try it beside your code</h2>
+<p>Switch to a scratch file in your editor. With only the pin for reference, write down the field paths for the job status, exported row count and download location. Keep the image small enough that it does not cover the code you are editing.</p>
+<details><summary>Check the field paths</summary><p><code>state</code>, <code>result.rows</code> and <code>result.download_path</code>. <code>job_id</code> identifies the job; it is not its status.</p></details>
+<p>You have completed the exercise when you can read those three paths while your editor is active. This checks reference visibility; it does not test or validate an API integration.</p></section>
+<section aria-labelledby="tips"><h2 id="tips">Keep the reference small and safe</h2><ul><li>Crop only the relevant fields, rather than a whole terminal window.</li><li>Do not include API keys, access tokens or private customer records in screenshots you plan to share.</li><li>Recapture after a schema changes. The pinned image does not update with the source.</li></ul></section>
+<section class="next-step" aria-labelledby="install"><h2 id="install">Try it with FastPin</h2><p>FastPin is a free, open-source desktop preview. macOS builds require macOS 14+ on Apple Silicon and are not notarized yet. The Windows x64 preview requires Developer Mode and one PowerShell registration. Read the installation steps before downloading.</p><p><a class="button" href="../../#download">Read install notes &amp; download</a></p><p>If you get stuck, <a href="https://github.com/TempestShaw/FastPin/issues/new?template=first-use.yml">report where the first-use flow stopped</a>. This opens a public GitHub issue form and requires a GitHub account. Do not include private screenshots.</p></section>
+<p class="related">Next guide: <a href="../compare-ui/">Compare UI changes with a pinned screenshot</a></p>
+</main>
+<footer class="footer"><div class="wrap footer-row"><a href="../../">FastPin home</a><span>Free · Open source · No account required by the app</span></div></footer>
+</body></html>
