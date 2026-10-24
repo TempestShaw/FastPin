@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compare UI changes with a pinned screenshot — FastPin</title>
+<meta name="description" content="Keep a before screenshot visible while reviewing a changed interface. Try a sample UI comparison with FastPin and check preview installation requirements.">
+<link rel="canonical" href="https://tempestshaw.github.io/FastPin/guides/compare-ui/">
+<meta property="og:type" content="article"><meta property="og:title" content="Compare UI changes with a pinned screenshot — FastPin">
+<meta property="og:description" content="Keep a before screenshot visible while reviewing a changed interface. Try a sample UI comparison with FastPin and check preview installation requirements."><meta property="og:url" content="https://tempestshaw.github.io/FastPin/guides/compare-ui/">
+<meta property="og:image" content="https://raw.githubusercontent.com/TempestShaw/FastPin/main/docs/assets/workspace.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../../assets/app-icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../style.css"><link rel="stylesheet" href="../guides.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav"><div class="wrap nav-row"><a class="brand" href="../../"><img src="../../assets/app-icon.svg" alt="" width="32" height="32">FastPin</a><nav class="nav-links" aria-label="Guide navigation"><a href="../../#guides">Guides</a><a href="https://github.com/TempestShaw/FastPin">GitHub</a></nav><a class="button button-small" href="../../#download">Install notes &amp; download</a></div></header>
+<main id="main" class="wrap guide">
+<p class="eyebrow">FastPin guide · macOS &amp; Windows</p>
+<h1>Compare UI changes with a pinned screenshot</h1>
+<p class="lede">Keep the previous state visible while you inspect a new layout. A pinned crop gives you a reference as you switch tabs or open the application you are reviewing.</p>
+<p>Use this for a visual check of one component. It is not an automated pixel diff or a guarantee of design accuracy; browser zoom, display scaling and image zoom can change the apparent size.</p>
+<section aria-labelledby="sample"><h2 id="sample">Capture this reference card</h2>
+<p>This is fictional website content for the exercise, not a screenshot of FastPin. Capture just the card, then pin it before scrolling to the changed version.</p>
+<figure class="sample"><figcaption>Reference · before</figcaption><div class="example-card"><span class="example-label">EXPORT READY</span><h3>Your report is ready</h3><p>128 rows · CSV</p><span class="example-action">Download report</span></div></figure></section><section aria-labelledby="steps"><h2 id="steps">Capture, pin, then keep working</h2>
+<ol>
+<li>Open FastPin and finish its permission setup. On macOS, check Screen Recording, Accessibility and Input Monitoring in Diagnostics if capture does not start.</li>
+<li>Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> and drag around the reference below. On macOS, double-tapping <em>left Command</em> is another capture trigger. Use your configured shortcut if you changed the defaults.</li>
+<li>Press <kbd>Space</kbd> to pin the selection. Drag the pin beside the area you are working on; scroll over the pin to adjust its size.</li>
+<li>Switch to your editor or scroll to the comparison task. The pinned image should remain visible. Hover over the pin and press <kbd>Space</kbd> for its tools.</li>
+<li>Press <kbd>Escape</kbd> while the pin is active to close it. <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>4</kbd> restores the last image if you closed it too soon.</li>
+</ol></section>
+<section aria-labelledby="task"><h2 id="task">Compare against the changed card</h2><p>Keep the reference pin visible beside this card. Look for changes in the status, the amount of spacing, and the action label. The cards below are static examples; their buttons do not download anything.</p>
+<figure class="sample"><figcaption>Current · after</figcaption><div class="example-card example-card-after"><span class="example-label">EXPORT READY</span><h3>Your report is ready</h3><p>128 rows · CSV</p><span class="example-action">Open report</span></div></figure>
+<details><summary>What changed?</summary><p>The action changed from “Download report” to “Open report”, and the card padding increased from 20 to 32 pixels. The heading, export status and row count stayed the same. A visual difference does not by itself tell you whether the change is correct.</p></details>
+<p>The exercise is complete when the reference stays visible while you inspect the current card, and you can identify both intentional changes.</p></section>
+<section aria-labelledby="tips"><h2 id="tips">Make the comparison fair</h2><ul><li>Keep browser zoom and display scale consistent between captures.</li><li>Capture the same component boundary and avoid comparing a zoomed pin as if it were a pixel-accurate overlay.</li><li>Use annotations to point out one difference. Confirm it in the live interface before filing a report.</li></ul></section>
+<section class="next-step" aria-labelledby="install"><h2 id="install">Try it with FastPin</h2><p>FastPin is a free, open-source desktop preview. macOS builds require macOS 14+ on Apple Silicon and are not notarized yet. The Windows x64 preview requires Developer Mode and one PowerShell registration. Read the installation steps before downloading.</p><p><a class="button" href="../../#download">Read install notes &amp; download</a></p><p>If you get stuck, <a href="https://github.com/TempestShaw/FastPin/issues/new?template=first-use.yml">report where the first-use flow stopped</a>. This opens a public GitHub issue form and requires a GitHub account. Do not include private screenshots.</p></section>
+<p class="related">Next guide: <a href="../pin-api-reference/">Keep an API response beside your editor</a></p>
+</main>
+<footer class="footer"><div class="wrap footer-row"><a href="../../">FastPin home</a><span>Free · Open source · No account required by the app</span></div></footer>
+</body></html>

@@ -22,7 +22,7 @@
     try {
       const preferred = (navigator.languages || [])[0] || navigator.language || "";
       if (!localStorage.getItem("fastpin-lang") && /^zh\b/i.test(preferred))
-        location.replace((!/hans/i.test(preferred) && /hant|tw|hk|mo/i.test(preferred) ? "zh-hant/" : "zh-hans/") + location.hash);
+        location.replace((!/hans/i.test(preferred) && /hant|tw|hk|mo/i.test(preferred) ? "zh-hant/" : "zh-hans/") + location.search + location.hash);
     } catch (error) { /* Storage blocked: stay on English. */ }
   </script>
   <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
@@ -167,6 +167,14 @@
             <div><strong>Restore last image</strong><span class="keys"><kbd data-key="ctrl">Ctrl</kbd><kbd data-key="shift">Shift</kbd><kbd>4</kbd></span></div>
           </div>
         </article>
+      </div>
+    </section>
+
+    <section id="guides" class="section wrap">
+      <div class="section-head"><p class="eyebrow">Guides</p><h2>Try a concrete workflow</h2></div>
+      <div class="downloads">
+        <article class="download"><h3><a href="guides/pin-api-reference/">Keep an API response beside your editor</a></h3><p>Capture a small JSON reference, pin it, and keep the field names in view while you code.</p></article>
+        <article class="download"><h3><a href="guides/compare-ui/">Compare UI changes with a pinned screenshot</a></h3><p>Keep a before state visible while checking a changed component.</p></article>
       </div>
     </section>
 
