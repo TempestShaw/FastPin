@@ -1,0 +1,41 @@
+name: First-use feedback
+description: Tell us how far you got with your first capture and pin.
+title: "[First use] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying FastPin. Please describe your own experience; a failed step is useful feedback.
+        This report is public. Do not include private screenshots, clipboard text, email addresses, or credentials.
+  - type: input
+    id: environment
+    attributes:
+      label: OS and FastPin version
+      description: "For example: macOS 15, Apple Silicon, Preview 11; or Windows 11, x64, Preview 11."
+    validations:
+      required: true
+  - type: dropdown
+    id: progress
+    attributes:
+      label: How far did you get?
+      options:
+        - Could not download or open the app
+        - Stopped at installation or permissions
+        - App opened, but capture did not start
+        - Selected a region, but could not pin it
+        - Pinned an image, but moving, closing, or restoring it was confusing
+        - Completed capture, pin, move, close, and restore
+    validations:
+      required: true
+  - type: textarea
+    id: experience
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the steps or shortcut you tried and any error text. Say if someone helped you.
+    validations:
+      required: true
+  - type: textarea
+    id: next_use
+    attributes:
+      label: What would you use FastPin for next?
+      description: Optional. One concrete task helps us understand whether the first pin was useful.
