@@ -21,3 +21,8 @@
 .next-step { border-top: 2px solid var(--mint); padding-top: 28px; }
 .related { padding-top: 24px; border-top: 1px solid var(--line); }
 @media (max-width: 600px) { .guide { padding-top: 32px; } .sample { padding: 16px; } .nav-row { gap: 12px; } .nav .button { margin-left: auto; font-size: 12px; padding-inline: 10px; } }
+
+.native-demo { margin: 24px 0; }
+.guide #demo { scroll-margin-top: 88px; }
+.native-demo video { display: block; width: 100%; height: auto; background: #000; border: 1px solid var(--line); border-radius: 12px; }
+.native-demo figcaption { margin-top: 12px; color: var(--muted); font-size: 14px; }
