@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, windows-2022]
+        os: [macos-15, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -123,7 +123,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          mac=build/release/FastPin-macos-14
+          mac=build/release/FastPin-macos-15
           windows=build/release/FastPin-windows-2022
           shopt -s nullglob
           deltas=("$mac"/update-feed/*.delta)
