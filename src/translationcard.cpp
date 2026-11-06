@@ -33,13 +33,16 @@ TranslationCard::TranslationCard(QString text)
     setAttribute(Qt::WA_TranslucentBackground);
     setFocusPolicy(Qt::NoFocus);
     setFixedWidth(cardWidth);
-    applyStyle();
+    QFont body = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+    body.setPointSizeF(15);
+    setFont(body);
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(18, 14, 18, 12);
     layout->setSpacing(10);
     layout->addLayout(buildHeader());
     layout->addWidget(buildDefinition());
     layout->addLayout(buildFooter());
+    setDarkBackdrop(false);
     if (!text.isEmpty()) setSourceText(std::move(text));
     else {
         setResult("Recognizing text…", "On-device OCR");
@@ -47,19 +50,23 @@ TranslationCard::TranslationCard(QString text)
     }
 }
 
-void TranslationCard::applyStyle()
+void TranslationCard::setDarkBackdrop(bool dark)
 {
-    QFont body = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
-    body.setPointSizeF(15);
-    setFont(body);
-    QPalette colors = palette();
-    colors.setColor(QPalette::Window, QColor("#ffffff"));
-    colors.setColor(QPalette::WindowText, QColor("#20242b"));
-    colors.setColor(QPalette::Text, QColor("#414956"));
-    colors.setColor(QPalette::Base, Qt::transparent);
-    setPalette(colors);
-    setStyleSheet("QToolButton { border: none; border-radius: 7px; padding: 0; color: #586270; background: transparent; }"
-                  "QToolButton:hover { background: rgba(70, 80, 95, 18); } QToolButton:pressed { background: rgba(70, 80, 95, 30); }");
+    darkBackdrop = dark;
+    setStyleSheet(QString("QLabel { color: %1; } QLabel#translationCredit { color: %3; }"
+                         "QPlainTextEdit { color: %2; background: transparent; }"
+                         "QToolButton { border: none; border-radius: 7px; padding: 0; color: %3; background: transparent; }"
+                         "QToolButton:hover { background: rgba(%4, 20); } QToolButton:pressed { background: rgba(%4, 35); }")
+                      .arg(dark ? "#f5f7fa" : "#20242b", dark ? "#edf0f5" : "#414956",
+                           dark ? "#c4cad3" : "#586270", dark ? "255, 255, 255" : "40, 50, 60"));
+    QPalette colors = credit->palette();
+    colors.setColor(QPalette::Link, QColor(dark ? "#b5daff" : "#1457a5"));
+    credit->setPalette(colors);
+    const QColor icon(dark ? "#dce1e8" : "#617080");
+    speaker->setIcon(toolIcon("speaker", icon));
+    copy->setIcon(toolIcon("copy", icon));
+    closeButton->setIcon(toolIcon("close", icon));
+    update();
 }
 
 QToolButton *TranslationCard::headerButton(const QString &name, const QString &icon, const QString &label)
@@ -96,9 +103,9 @@ QLayout *TranslationCard::buildHeader()
     });
     copy = headerButton("copyDefinition", "copy", "Copy translation");
     connect(copy, &QToolButton::clicked, this, [this] { QApplication::clipboard()->setText(definition->toPlainText()); });
-    auto *close = headerButton("closeTranslation", "close", "Close translation");
-    connect(close, &QToolButton::clicked, this, &QWidget::close);
-    for (auto *button : {speaker, copy, close}) header->addWidget(button);
+    closeButton = headerButton("closeTranslation", "close", "Close translation");
+    connect(closeButton, &QToolButton::clicked, this, &QWidget::close);
+    for (auto *button : {speaker, copy, closeButton}) header->addWidget(button);
     return header;
 }
 
@@ -110,8 +117,8 @@ QWidget *TranslationCard::buildDefinition()
     definition->setReadOnly(true);
     definition->setFocusPolicy(Qt::NoFocus);
     definition->setFrameStyle(QFrame::NoFrame);
+    definition->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     definition->document()->setDocumentMargin(0);
-    definition->setStyleSheet("QPlainTextEdit { background: transparent; }");
     return definition;
 }
 
@@ -119,8 +126,11 @@ QLayout *TranslationCard::buildFooter()
 {
     auto *footer = new QHBoxLayout;
     credit = new QLabel(this);
-    credit->setTextFormat(Qt::PlainText);
-    credit->setStyleSheet("color: #9aa2ad;");
+    credit->setObjectName("translationCredit");
+    credit->setTextFormat(Qt::RichText);
+    credit->setOpenExternalLinks(true);
+    credit->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
+    credit->setWordWrap(true);
     QFont small = credit->font();
     small.setPointSizeF(10);
     credit->setFont(small);
@@ -156,6 +166,7 @@ TranslationCard::~TranslationCard()
 void TranslationCard::setSourceText(QString text)
 {
     source = std::move(text);
+    online->show();
     title->setText(title->fontMetrics().elidedText(source.simplified(), Qt::ElideRight, 215));
     title->setToolTip(source);
     setActionsEnabled(true);
@@ -185,7 +196,16 @@ void TranslationCard::setResult(QString text, QString attribution)
 void TranslationCard::translateOnline()
 {
     if (source.toUtf8().size() > onlineByteLimit) {
-        setResult(QString("Select a shorter sentence (up to %1 UTF-8 bytes).").arg(onlineByteLimit), "MyMemory · Online limit");
+        const auto urls = browserTranslationUrls(source);
+        QStringList links;
+        for (qsizetype i = 0; i < urls.size(); ++i) {
+            const QString label = urls.size() == 1 ? "Open in Google Translate ↗" : QString("Part %1 ↗").arg(i + 1);
+            links.append(QString("<a href=\"%1\">%2</a>").arg(urls[i].toString(QUrl::FullyEncoded).toHtmlEscaped(), label));
+        }
+        online->hide();
+        copy->setEnabled(false);
+        setResult(urls.size() == 1 ? "Continue this translation in your browser. The full text is ready to translate."
+                                  : "Continue in Google Translate. Open each part below to translate the full text.", links.join(" &nbsp; "));
         return;
     }
     online->setEnabled(false); copy->setEnabled(false);
@@ -219,7 +239,7 @@ void TranslationCard::showAt(QPoint anchor)
     move(position);
 #ifdef Q_OS_MACOS
     if (!stopFocusWatch) stopFocusWatch = makePanelNonactivating(this);
-    if (!removeGlass) removeGlass = installTranslationGlass(this);
+    if (!removeGlass) removeGlass = installTranslationGlass(this, [this](bool dark) { setDarkBackdrop(dark); });
 #endif
     show();
 }
@@ -231,7 +251,9 @@ void TranslationCard::paintEvent(QPaintEvent *)
 #ifdef Q_OS_MACOS
     glass = bool(removeGlass);
 #endif
-    p.setBrush(QColor(255, 253, 245, glass ? 160 : 250)); p.setPen(QPen(QColor("#38A87E"), 1.25));
+    if (glass) p.setBrush(Qt::NoBrush);
+    else p.setBrush(darkBackdrop ? QColor(28, 30, 34, 245) : QColor(250, 250, 252, 245));
+    p.setPen(QPen(darkBackdrop ? QColor(255, 255, 255, 45) : QColor(0, 0, 0, 28), 0.5));
     p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 16, 16);
 }
 void TranslationCard::mousePressEvent(QMouseEvent *e)

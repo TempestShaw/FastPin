@@ -73,6 +73,42 @@ QUrl onlineTranslationUrl(const QString &text)
     return url;
 }
 
+// Bound the encoded URL, not the character count: one Han character costs nine URL characters.
+// Google answers HTTP 400 near 20 KB, and the Windows shell documents a 2083-character URL limit.
+static constexpr qsizetype browserUrlLimit = 2048;
+
+QList<QUrl> browserTranslationUrls(const QString &text)
+{
+    const QString target = containsHan(text) ? "en" : "zh-TW";
+    const auto urlFor = [&target](const QString &part) {
+        QUrl url("https://translate.google.com/");
+        QUrlQuery query;
+        query.addQueryItem("sl", "auto");
+        query.addQueryItem("tl", target);
+        query.addQueryItem("text", QString::fromLatin1(QUrl::toPercentEncoding(part)));
+        query.addQueryItem("op", "translate");
+        url.setQuery(query);
+        return url;
+    };
+    // Measure with one character: an empty value would also drop the query item's '='.
+    const qsizetype budget = browserUrlLimit - (urlFor("x").toString(QUrl::FullyEncoded).size() - 1);
+    QList<QUrl> urls;
+    qsizetype start = 0, encoded = 0;
+    for (qsizetype i = 0; i < text.size();) {
+        const qsizetype width = text.at(i).isHighSurrogate() && i + 1 < text.size() ? 2 : 1;
+        const qsizetype cost = QUrl::toPercentEncoding(text.mid(i, width)).size();
+        if (encoded + cost > budget) {
+            urls.append(urlFor(text.mid(start, i - start)));
+            start = i;
+            encoded = 0;
+        }
+        encoded += cost;
+        i += width;
+    }
+    if (start < text.size()) urls.append(urlFor(text.mid(start)));
+    return urls;
+}
+
 TranslationResult parseTranslationReply(const QByteArray &json, bool transportFailed)
 {
     const auto root = QJsonDocument::fromJson(json).object();

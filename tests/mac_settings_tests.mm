@@ -134,9 +134,10 @@ private slots:
         for (NSView *sibling in view.superview.subviews)
             if ([sibling isKindOfClass:NSVisualEffectView.class]) glass = (NSVisualEffectView *)sibling;
         QVERIFY(glass);
+        QCOMPARE(glass.material, NSVisualEffectMaterialHUDWindow);
         QCOMPARE(glass.alphaValue, CGFloat(1)); // Lower opacity disables AppKit's backdrop blur.
         // Qt's tint must leave the native backdrop visible through the card.
-        QVERIFY(card.grab().toImage().pixelColor(6, card.height() / 2).alpha() < 255);
+        QCOMPARE(card.grab().toImage().pixelColor(6, card.height() / 2).alpha(), 0);
     }
 
     void initTestCase()

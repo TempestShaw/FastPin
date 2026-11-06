@@ -17,13 +17,13 @@ public:
     void showAt(QPoint anchor);
     void setSourceText(QString text);
     void setOcrError(QString error);
+    void setDarkBackdrop(bool dark);
 protected:
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
     void mouseMoveEvent(QMouseEvent *) override;
     void mouseReleaseEvent(QMouseEvent *) override;
 private:
-    void applyStyle();
     QToolButton *headerButton(const QString &name, const QString &icon, const QString &label);
     QLayout *buildHeader();
     QWidget *buildDefinition();
@@ -34,7 +34,7 @@ private:
     QString source;
     QPlainTextEdit *definition;
     QLabel *title, *credit;
-    QToolButton *speaker, *copy, *online;
+    QToolButton *speaker, *copy, *online, *closeButton;
     QNetworkAccessManager *network = nullptr; // Created on first online request, reused afterwards.
     std::function<void()> stopSpeech;
 #ifdef Q_OS_MACOS
@@ -42,5 +42,6 @@ private:
     std::function<void()> removeGlass;
 #endif
     bool moving = false;
+    bool darkBackdrop = false;
     QPoint dragOffset;
 };

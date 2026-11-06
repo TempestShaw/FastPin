@@ -87,8 +87,113 @@ private slots:
         card->findChild<QToolButton *>("closeTranslation")->click();
         QTRY_VERIFY(pointer.isNull()); QVERIFY(original.isVisible());
         auto *oversized = new TranslationCard(QString(501, 'x'));
-        QVERIFY(oversized->findChild<QPlainTextEdit *>("translationDefinition")->toPlainText().contains("shorter"));
+        QVERIFY(oversized->findChild<QLabel *>("translationCredit")->text().contains("Open in Google Translate"));
         oversized->close();
+    }
+
+    void browserTranslationPreservesLongUnicodeText()
+    {
+        const QString text = QString(4999, 'a') + QString::fromUtf8("😀 <hello> & + # %20\n世界");
+        const auto urls = browserTranslationUrls(text);
+        QVERIFY(urls.size() >= 2);
+        QString restored;
+        for (const auto &url : urls) {
+            QVERIFY(url.toString(QUrl::FullyEncoded).size() <= 2048);
+            QCOMPARE(url.scheme(), QString("https"));
+            QCOMPARE(url.host(), QString("translate.google.com"));
+            const QUrlQuery query(url);
+            QCOMPARE(query.queryItemValue("sl"), QString("auto"));
+            QCOMPARE(query.queryItemValue("tl"), QString("en"));
+            const QString part = query.queryItemValue("text", QUrl::FullyDecoded);
+            QVERIFY(!part.front().isLowSurrogate());
+            QVERIFY(!part.back().isHighSurrogate());
+            restored += part;
+        }
+        QCOMPARE(restored, text);
+        QCOMPARE(QUrlQuery(browserTranslationUrls("Hello & goodbye?").front()).queryItemValue("tl"), QString("zh-TW"));
+        auto *card = new TranslationCard(text);
+        auto *credit = card->findChild<QLabel *>("translationCredit");
+        QVERIFY(credit->text().contains("Part 1"));
+        QVERIFY(credit->text().contains("Part 2"));
+        QVERIFY(credit->openExternalLinks());
+        QVERIFY(card->findChild<QToolButton *>("translateOnline")->isHidden());
+        QVERIFY(!card->findChild<QToolButton *>("copyDefinition")->isEnabled());
+        card->setSourceText("bank");
+        QVERIFY(!credit->text().contains("href="));
+        QVERIFY(!card->findChild<QToolButton *>("translateOnline")->isHidden());
+        card->close();
+    }
+
+    void browserTranslationKeepsEncodedLinksOpenable_data()
+    {
+        QTest::addColumn<QString>("text");
+        // Percent-encoding makes each of these far longer than its character count.
+        QTest::newRow("han") << QString::fromUtf8("世").repeated(5000);
+        QTest::newRow("emoji-only") << QString::fromUtf8("😀").repeated(2000);
+        QTest::newRow("reserved-ascii") << QString("& ").repeated(4000);
+    }
+
+    void browserTranslationKeepsEncodedLinksOpenable()
+    {
+        QFETCH(QString, text);
+        const auto urls = browserTranslationUrls(text);
+        QVERIFY(urls.size() > 1);
+        QString restored;
+        for (const auto &url : urls) {
+            QVERIFY(url.toString(QUrl::FullyEncoded).size() <= 2048);
+            const QString part = QUrlQuery(url).queryItemValue("text", QUrl::FullyDecoded);
+            QVERIFY(!part.isEmpty());
+            QVERIFY(!part.front().isLowSurrogate());
+            QVERIFY(!part.back().isHighSurrogate());
+            restored += part;
+        }
+        QCOMPARE(restored, text);
+    }
+
+    void translationCardTextStaysReadable_data()
+    {
+        QTest::addColumn<QColor>("systemText");
+        QTest::addColumn<bool>("darkBackdrop");
+        QTest::newRow("light-system-light-backdrop") << QColor(Qt::black) << false;
+        QTest::newRow("dark-system-light-backdrop") << QColor(Qt::white) << false;
+        QTest::newRow("light-system-dark-backdrop") << QColor(Qt::black) << true;
+        QTest::newRow("dark-system-dark-backdrop") << QColor(Qt::white) << true;
+    }
+
+    void translationCardTextStaysReadable()
+    {
+        QFETCH(QColor, systemText);
+        QFETCH(bool, darkBackdrop);
+        const QPalette labelPalette = QApplication::palette("QLabel");
+        const QPalette editorPalette = QApplication::palette("QPlainTextEdit");
+        const auto restore = qScopeGuard([&] {
+            QApplication::setPalette(labelPalette, "QLabel");
+            QApplication::setPalette(editorPalette, "QPlainTextEdit");
+        });
+        QPalette systemPalette;
+        systemPalette.setColor(QPalette::WindowText, systemText);
+        systemPalette.setColor(QPalette::Text, systemText);
+        QApplication::setPalette(systemPalette, "QLabel");
+        QApplication::setPalette(systemPalette, "QPlainTextEdit");
+        auto *card = new TranslationCard;
+        card->setDarkBackdrop(darkBackdrop);
+        card->ensurePolished();
+        auto *title = card->findChild<QLabel *>();
+        auto *definition = card->findChild<QPlainTextEdit *>("translationDefinition");
+        const auto verifyText = [&] {
+            for (auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {
+                QCOMPARE(title->palette().color(group, QPalette::WindowText), QColor(darkBackdrop ? "#f5f7fa" : "#20242b"));
+                QCOMPARE(definition->palette().color(group, QPalette::Text), QColor(darkBackdrop ? "#edf0f5" : "#414956"));
+            }
+        };
+        verifyText();
+        card->setSourceText("bank");
+        verifyText();
+        card->setOcrError("No text found.");
+        verifyText();
+        card->setSourceText(QString(501, 'x'));
+        verifyText();
+        card->close();
     }
 
     void annotationHistoryKeepsEditsAndBranchesInOrder()

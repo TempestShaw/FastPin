@@ -3,7 +3,9 @@
 #include "translation.h"
 
 #include <QCoreApplication>
+#include <QPointer>
 #include <QScreen>
+#include <QTimer>
 #include <QWidget>
 #include <unistd.h>
 #import <AppKit/AppKit.h>
@@ -11,6 +13,7 @@
 #import <Vision/Vision.h>
 #import <AVFoundation/AVFoundation.h>
 #import <QuartzCore/QuartzCore.h>
+#import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <IOKit/hidsystem/IOLLEvent.h>
 
 std::function<void()> pronounceText(const QString &text)
@@ -90,21 +93,99 @@ std::function<void()> makePanelNonactivating(QWidget *window)
     };
 }
 
-std::function<void()> installTranslationGlass(QWidget *window)
+@interface FastPinTranslationGlass : NSVisualEffectView {
+@public
+    QPointer<QWidget> card;
+    std::function<void(bool)> backdropChanged;
+    bool sampling, resample, darkBackdrop;
+}
+- (void)refreshBackdrop;
+@end
+
+@implementation FastPinTranslationGlass
+- (void)refreshBackdrop
+{
+    if (!card || !backdropChanged || !card->isVisible() || !CGPreflightScreenCaptureAccess()) return;
+    if (sampling) { resample = true; return; }
+    const QRect screen = card->screen()->geometry();
+    const QRect region = card->geometry().intersected(screen).translated(-screen.topLeft());
+    if (region.isEmpty()) return;
+    sampling = true; resample = false;
+    const CGDirectDisplayID displayId = [self.window.screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
+    const CGWindowID windowId = self.window.windowNumber;
+    const CGRect rect = CGRectMake(region.x(), region.y(), region.width(), region.height());
+    __weak FastPinTranslationGlass *weak = self;
+    void (^finished)(CGImageRef) = ^(CGImageRef image) {
+        double brightness = -1;
+        if (image) {
+            unsigned char pixel[4] = {};
+            CGColorSpaceRef color = CGColorSpaceCreateDeviceRGB();
+            CGContextRef context = CGBitmapContextCreate(pixel, 1, 1, 8, 4, color, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+            if (context) {
+                CGContextDrawImage(context, CGRectMake(0, 0, 1, 1), image);
+                brightness = (0.2126 * pixel[0] + 0.7152 * pixel[1] + 0.0722 * pixel[2]) / 255;
+                CGContextRelease(context);
+            }
+            CGColorSpaceRelease(color);
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            FastPinTranslationGlass *glass = weak;
+            if (!glass || !glass->backdropChanged) return;
+            glass->sampling = false;
+            // Hysteresis keeps text from flickering over mixed light/dark content.
+            const bool dark = brightness >= 0 && brightness < (glass->darkBackdrop ? 0.58 : 0.42);
+            if (brightness >= 0 && dark != glass->darkBackdrop) {
+                glass->darkBackdrop = dark;
+                glass.appearance = [NSAppearance appearanceNamed:dark ? NSAppearanceNameDarkAqua : NSAppearanceNameAqua];
+                glass->backdropChanged(dark);
+            }
+            if (glass->resample) [glass refreshBackdrop];
+        });
+    };
+    [SCShareableContent getShareableContentExcludingDesktopWindows:NO onScreenWindowsOnly:YES
+        completionHandler:^(SCShareableContent *content, NSError *error) {
+            if (error) { finished(nil); return; }
+            SCDisplay *display = nil;
+            for (SCDisplay *candidate in content.displays) if (candidate.displayID == displayId) display = candidate;
+            SCWindow *excluded = nil;
+            for (SCWindow *candidate in content.windows) if (candidate.windowID == windowId) excluded = candidate;
+            if (!display || !excluded) { finished(nil); return; }
+            SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[excluded]];
+            SCStreamConfiguration *config = [[SCStreamConfiguration alloc] init];
+            config.sourceRect = rect; config.width = 32; config.height = 16; config.showsCursor = NO;
+            [SCScreenshotManager captureImageWithFilter:filter configuration:config completionHandler:^(CGImageRef image, NSError *) { finished(image); }];
+        }];
+}
+@end
+
+std::function<void()> installTranslationGlass(QWidget *window, std::function<void(bool)> backdropChanged)
 {
     if (QGuiApplication::platformName() != "cocoa") return {};
     NSView *view = (__bridge NSView *)reinterpret_cast<void *>(window->winId());
-    NSVisualEffectView *glass = [[NSVisualEffectView alloc] initWithFrame:view.frame];
+    FastPinTranslationGlass *glass = [[FastPinTranslationGlass alloc] initWithFrame:view.frame];
+    glass->card = window; glass->backdropChanged = std::move(backdropChanged);
     glass.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-    glass.material = NSVisualEffectMaterialMenu;
+    glass.material = NSVisualEffectMaterialHUDWindow;
     glass.blendingMode = NSVisualEffectBlendingModeBehindWindow;
     glass.state = NSVisualEffectStateActive;
     glass.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
     glass.wantsLayer = YES; glass.layer.cornerRadius = 16; glass.layer.masksToBounds = YES;
     [view.superview addSubview:glass positioned:NSWindowBelow relativeTo:view];
-    view.window.appearance = glass.appearance;
     view.window.backgroundColor = NSColor.clearColor; view.window.hasShadow = YES;
-    return [glass] { [glass removeFromSuperview]; };
+    __weak FastPinTranslationGlass *weak = glass;
+    NSMutableArray *observers = [NSMutableArray array];
+    for (NSNotificationName name in @[NSWindowDidMoveNotification, NSWindowDidResizeNotification, NSWindowDidChangeScreenNotification])
+        [observers addObject:[NSNotificationCenter.defaultCenter addObserverForName:name object:view.window queue:NSOperationQueue.mainQueue
+            usingBlock:^(NSNotification *) { [weak refreshBackdrop]; }]];
+    id activation = [NSWorkspace.sharedWorkspace.notificationCenter addObserverForName:NSWorkspaceDidActivateApplicationNotification
+        object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *) { [weak refreshBackdrop]; }];
+    QTimer::singleShot(0, window, [weak] { [weak refreshBackdrop]; });
+    return [glass, observers, activation] {
+        glass->backdropChanged = {};
+        for (id observer in observers) [NSNotificationCenter.defaultCenter removeObserver:observer];
+        [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:activation];
+        [glass removeFromSuperview];
+    };
 }
 
 QList<DesktopWindow> desktopWindows()

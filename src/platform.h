@@ -13,7 +13,7 @@ class QWidget;
 std::function<void()> watchPinHover(QWidget *window, std::function<void(bool)> changed);
 std::function<void()> captureFocusRestorer();
 std::function<void()> makePanelNonactivating(QWidget *window);
-std::function<void()> installTranslationGlass(QWidget *window);
+std::function<void()> installTranslationGlass(QWidget *window, std::function<void(bool)> backdropChanged);
 #endif
 
 // OS desktop coordinates: points on macOS, physical pixels on Windows.
