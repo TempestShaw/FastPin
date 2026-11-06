@@ -52,6 +52,17 @@ private slots:
         QSettings settings; Hotkeys::save(settings, bindings);
     }
 
+    void doubleControlLabelNamesThePhysicalKey()
+    {
+        const QString label = doubleControlGestureLabel();
+        QVERIFY(!label.contains(QChar(0)));
+#ifdef Q_OS_MACOS
+        QVERIFY(!label.isEmpty());
+#else
+        QCOMPARE(label, QString::fromUtf8("Ctrl ×2")); // Qt::META is the Windows key here.
+#endif
+    }
+
     void doubleControlPreferenceIsSaved()
     {
         Controller panel;

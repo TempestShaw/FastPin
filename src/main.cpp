@@ -35,6 +35,17 @@
 #include <QVBoxLayout>
 #include <memory>
 
+static QString doubleControlGestureLabel()
+{
+#ifdef Q_OS_MACOS
+    // Qt Meta is the physical Control key on macOS.
+    const QString tap = QKeySequence(Qt::META).toString(QKeySequence::NativeText).remove('+');
+    return tap + tap;
+#else
+    return QString::fromUtf8("Ctrl ×2");
+#endif
+}
+
 class Controller : public QWidget {
 public:
     ~Controller() override { setDoubleControl(false);
@@ -398,8 +409,7 @@ private:
 #endif
         if (stopDoubleControl) {
             auto *translateKeys = actionKeys[int(HotkeyAction::Translate)];
-            const QString tap = QKeySequence(Qt::META).toString(QKeySequence::NativeText).remove('+');
-            translateKeys->setText(tap + tap + (translateKeys->text().isEmpty() ? QString() : " · " + translateKeys->text()));
+            translateKeys->setText(doubleControlGestureLabel() + (translateKeys->text().isEmpty() ? QString() : " · " + translateKeys->text()));
         }
     }
 
